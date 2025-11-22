@@ -61,7 +61,7 @@ Version: 2.0.0
         - [Scenario 8.2: Generate unfiltered sales report](#scenario-82-generate-unfiltered-sales-report)
         - [Scenario 8.3: Generate Sales Report filtered by Register ID](#scenario-83-generate-sales-report-filtered-by-register-id)
         - [Scenario 8.4: Generate sales report filtered by Employee ID](#scenario-84-generate-sales-report-filtered-by-employee-id)
-        - [Scenario 8.5: Generate PO Report](#scenario-85-nominal-scenario-actor-generates-po-report)
+        - [Scenario 8.5: Generate PO Report](#scenario-85-generate-po-report)
     - [UC9 Manage Account Passcodes and Shop Password](#uc9-manage-account-passcodes-and-shop-password)
         - [Scenario 9.1: Nominal Scenario (Change Passcode/Password)](#scenario-91-nominal-scenario-change-passcodepassword)
     - [UC10 Manage Registers](#uc10-manage-registers)
