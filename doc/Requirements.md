@@ -305,7 +305,7 @@ Overall, the system reduces administrative and time consuming task, minimize err
 |UC5| Manage Inventory | Update Product definitions, adjust stock quantities, or record Supplier deliveries. | Shop Manager| |
 |UC6| Manage Supplier Information | Create, update, or deactivate Supplier contact information.| Shop Manager | |
 |UC7| Place Supplier Order | Create a purchase order and save it with a "Draft" or "Sent" status. | Shop Manager | |
-|UC8| Generate Report | Generate and export a sales, inventory, or purchase order report. | Shop Manager, Accountant | |
+|UC8| Generate PO Report | Generate and export a sales, inventory, or purchase order report. | Shop Manager, Accountant | |
 |UC9| Manage Account Passcodes | Change a system Password or Pascode. | Shop Manager | |
 |UC10| Manage Registers |Register a new register and assign it a unique Register ID and input the Payment Terminal ID. | Shop Manager | Cash Register |
 |UC11| Manage Employees | Create, update, or deactivate an employee account. | Shop Manager | |
@@ -819,7 +819,7 @@ Overall, the system reduces administrative and time consuming task, minimize err
 | Actor clicks “Generate Report” | System gathers all sales, taxes and refunds within that date range. | FR4.2.1 |
 | Actor clicks “Export CSV” | System generates and downloads the filtered CSV file. | FR4.3 |
 
-#### Scenario 8.5: Nominal scenario (Actor generates PO Report)
+#### Scenario 8.5: Generate PO Report
 
 | Scenario 8.5 | |
 | :--- | :--- |
