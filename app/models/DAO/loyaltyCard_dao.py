@@ -1,16 +1,20 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .customer_dao import CustomerDAO
 
-class LoyaltyCard(Base):
-    __tablename__ = "loyalty_card"
+class LoyaltyCardDAO(Base):
+    __tablename__ = "loyalty_cards"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    points = Column(Integer, nullable=False)
-    customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False)
-    
-    customer: Mapped["CustomerDAO"] = relationship("CustomerDAO", back_populates="loyaltyCard")
+    card_code = Column(String(10), unique=True, nullable=False)
+    points = Column(Integer, nullable=False, default=0)
+
+    customer_id = Column(Integer, ForeignKey('customers.id'), unique=True, nullable=True)
+
+    customer: Mapped[Optional["CustomerDAO"]] = relationship(
+        "CustomerDAO", back_populates="loyalty_card"
+    )

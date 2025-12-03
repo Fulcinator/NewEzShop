@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING, List, Optional
@@ -14,12 +14,12 @@ class ProductTypeDAO(Base):
     __tablename__ = "product_types"
 
     id = Column(Integer, name='product_type_id', primary_key=True, autoincrement=True)
-    barcode = Column(Integer, unique=True, nullable=False)
+    barcode = Column(String(14), unique=True, nullable=False)
     name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
-    sellPrice = Column(Integer, nullable=False)
+    sellPrice = Column(Float, nullable=False)
     quantity = Column(Integer, nullable=False)
-    discountRate = Column(Integer, nullable=True)
+    discountRate = Column(Float, nullable=True)
     notes = Column(String, nullable=True)
 
     position_id = Column(Integer, ForeignKey("positions.id"), nullable=True)

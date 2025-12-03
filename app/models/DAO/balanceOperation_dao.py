@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING
@@ -10,9 +10,9 @@ class BalanceOperationDAO(Base):
     __tablename__ = "balance_operations"
 
     id = Column(Integer, name='balance_operation_id', primary_key=True, autoincrement=True)
-    amount = Column(Integer, nullable=False)
+    amount = Column(Float, nullable=False)
     description = Column(String, nullable=True)
-    date = Column(String, nullable=False)
+    date = Column(DateTime, nullable=False)
 
     op_type = Column("type", String(50), nullable=False)
 

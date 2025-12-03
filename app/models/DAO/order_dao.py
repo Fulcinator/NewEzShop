@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, String
+from sqlalchemy import Table, Column, Integer, ForeignKey, String, Float
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING, List
@@ -14,7 +14,7 @@ class OrderDAO(Base):
     supplier = Column(String, nullable=False)
     status = Column(String, nullable=False)
     quantity = Column(Integer, nullable=False)
-    price_per_unit = Column(Integer, nullable=False)
+    price_per_unit = Column(Float, nullable=False)
 
     product_types: Mapped[List["ProductTypeDAO"]] = relationship(
         "ProductTypeDAO",
