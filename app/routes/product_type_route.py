@@ -18,14 +18,14 @@ router = APIRouter(
 
 controller = ProductTypeController()
 
-ALLOW = [UserType.Administrator, UserType.ShopManager]
+ADMIN_AND_MANAGER = [UserType.Administrator, UserType.ShopManager]
 
 # FR3.1 create
 @router.post(
     "/",
     response_model=ProductTypeResponseDTO,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(authenticate_user(ALLOW))]
+    dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def create_product_type(dto: ProductTypeCreateDTO):
     return await controller.create(dto)
@@ -34,7 +34,7 @@ async def create_product_type(dto: ProductTypeCreateDTO):
 @router.put(
     "/{product_type_id}",
     response_model=ProductTypeResponseDTO,
-    dependencies=[Depends(authenticate_user(ALLOW))]
+    dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def update_product_type(product_type_id: int, dto: ProductTypeUpdateDTO):
     return await controller.update(product_type_id, dto)
@@ -43,7 +43,7 @@ async def update_product_type(product_type_id: int, dto: ProductTypeUpdateDTO):
 @router.delete(
     "/{product_type_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(authenticate_user(ALLOW))]
+    dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def delete_product_type(product_type_id: int):
     await controller.delete(product_type_id)
@@ -53,7 +53,7 @@ async def delete_product_type(product_type_id: int):
 @router.get(
     "/",
     response_model=List[ProductTypeResponseDTO],
-    dependencies=[Depends(authenticate_user(ALLOW))]
+    dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
 async def list_product_types():
     return await controller.list_all()
@@ -62,7 +62,7 @@ async def list_product_types():
 @router.get(
     "/search",
     response_model=List[ProductTypeResponseDTO],
-    dependencies=[Depends(authenticate_user(ALLOW))]
+    dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def search_product_types(
     barcode: Optional[str] = Query(None),
