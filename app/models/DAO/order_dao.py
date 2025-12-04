@@ -1,7 +1,8 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, String, Float
+from sqlalchemy import Table, Column, Integer, String, Float, Enum
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from typing import TYPE_CHECKING, List
+from app.models.order_status import OrderStatus
 
 if TYPE_CHECKING:
     from .productType_dao import ProductTypeDAO
@@ -12,7 +13,7 @@ class OrderDAO(Base):
 
     id = Column(Integer, name='order_id', primary_key=True, autoincrement=True)
     supplier = Column(String, nullable=False)
-    status = Column(String, nullable=False)
+    status = Column(Enum(OrderStatus), nullable=False)
     quantity = Column(Integer, nullable=False)
     price_per_unit = Column(Float, nullable=False)
 
