@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Query
 from typing import List
 from app.models.DTO.user_dto import UserDTO, UserCreateDTO, UserResponseDTO
 from app.models.user_type import UserType
@@ -105,3 +105,20 @@ async def delete_user(user_id: int):
     if not success:
         raise NotFoundError("User not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.get("/search/", response_model=List[UserResponseDTO],
+            dependencies=[Depends(authenticate_user([UserType.Administrator]))])
+async def search_users(
+    username: str | None = Query(None, description="Exact username to search"),
+    user_type: UserType | None = Query(None, description="Filter by user role"),
+):
+    """
+    Search users.
+
+    - Permissions: Administrator
+    - Query params (both optional):
+        - username: exact username match
+        - user_type: filter by role (Administrator, ShopManager, Cashier)
+    - Returns: List of matching users (can be empty)
+    """
+    return await controller.search_users(username=username, user_type=user_type)
