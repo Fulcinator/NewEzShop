@@ -107,3 +107,22 @@ class UserRepository:
             await session.delete(user)
             await session.commit()
             return True
+        
+    #NOTE: could have used get_user_by_username instead of this function, but I feel like this is more suitable for FR1.4 - Johanne
+    async def search_users(self, username: Optional[str] = None, user_type: Optional[UserType] = None) -> list[UserDAO]:
+        """
+        Search users by optional filters.
+        - If both filters are None, returns all users.
+        - I no matches, returns empty list.
+        """
+        async with await self._get_session() as session:
+            query = select(UserDAO)
+
+            if username is not None:
+                query = query.filter(UserDAO.username == username)
+
+            if user_type is not None:
+                query = query.filter(UserDAO.type == user_type)
+
+            result = await session.execute(query)
+            return result.scalars().all()
