@@ -24,9 +24,6 @@ class OrderRepository:
     async def issue_reorder_warning(
         self, product_type_id: int, supplier: str, quantity: int, price_per_unit: float
     ) -> OrderDAO:
-        """
-        Issue a reorder warning (create order in ISSUED state)
-        """
         if quantity <= 0:
             raise BadRequestError("Quantity must be > 0")
         if price_per_unit <= 0:
@@ -50,9 +47,6 @@ class OrderRepository:
     async def send_and_pay_order(
         self, product_type_id: int, supplier: str, quantity: int, price_per_unit: float
     ) -> OrderDAO:
-        """
-        Send and pay an order for a product type. Creates order directly in PAYED state
-        """
         if quantity <= 0:
             raise BadRequestError("Quantity must be > 0")
         if price_per_unit <= 0:
@@ -75,9 +69,6 @@ class OrderRepository:
             return order
 
     async def pay_issued_order(self, order_id: int) -> OrderDAO:
-        """
-        Pay an issued reorder warning (ISSUED -> PAYED)
-        """
         async with await self._get_session() as session:
             order = await session.get(OrderDAO, order_id)
             if not order:
@@ -93,9 +84,6 @@ class OrderRepository:
             return order
 
     async def record_arrival(self, order_id: int) -> OrderDAO:
-        """
-        Record order arrival, and update product quantity (PAYED -> COMPLETED)
-        """
         async with await self._get_session() as session:
             order = await session.get(OrderDAO, order_id)
             if not order:
@@ -117,9 +105,6 @@ class OrderRepository:
             return order
 
     async def list_orders(self) -> List[OrderDAO]:
-        """
-        List all orders
-        """
         async with await self._get_session() as session:
             stmt = select(OrderDAO)
             result = await session.execute(stmt)
