@@ -2,6 +2,12 @@ from app.models.DAO.user_dao import UserDAO
 from app.models.DTO.user_dto import UserDTO
 from app.models.DTO.token_dto import TokenDTO
 from app.models.DTO.error_dto import ErrorDTO
+from app.models.DTO.product_type_dto import ProductTypeResponseDTO
+from app.models.DAO.productType_dao import ProductTypeDAO
+from app.models.DAO.saleTransaction_dao import SaleTransactionDAO
+from app.models.DTO.saleTransaction_dto import SaleTransactionDTO
+from app.models.DTO.returnTransaction_dto import ReturnTransactionDTO
+from app.models.DAO.returnTransaction_dao import ReturnTransactionDAO
 
 
 def create_error_dto(code: int, message: str, name: str) -> ErrorDTO:
@@ -24,4 +30,38 @@ def userdao_to_responsedto(user_dao: UserDAO) -> UserDTO:
         id=user_dao.id,
         username=user_dao.username,
         type=user_dao.type
+    )
+
+def ProductTypeDao_toDto(product_type_dao: ProductTypeDAO, dto_class: ProductTypeResponseDTO) -> ProductTypeResponseDTO:
+    return dto_class(
+        id=product_type_dao.id,
+        barcode=product_type_dao.barcode,
+        name=product_type_dao.name,
+        description=product_type_dao.description,
+        sellPrice=product_type_dao.sellPrice,
+        quantity=product_type_dao.quantity,
+        discountRate=product_type_dao.discountRate,
+        notes=product_type_dao.notes,
+        position_id=product_type_dao.position.id if product_type_dao.position else None
+    )
+
+def saleTransactionDao_toDto(sale_dao: SaleTransactionDAO, dto_class: SaleTransactionDTO) -> SaleTransactionDTO:
+    return dto_class(
+        id=sale_dao.id,
+        status=sale_dao.status,
+        cost=sale_dao.cost,
+        paymentType=sale_dao.paymentType,
+        discount_rate=sale_dao.discountRate,
+        created_at=sale_dao.created_at,
+        closed_at=sale_dao.closed_at,
+        loyalty_card_id=sale_dao.loyalty_card_id,
+        )
+
+def ReturnTransactionDao_toDto(return_dao: ReturnTransactionDAO, dto_class: ReturnTransactionDTO) -> ReturnTransactionDTO:
+    return dto_class(
+        id=return_dao.id,
+        sale_transaction_id=return_dao.sale_transaction_id,
+        status=return_dao.status,
+        created_at=return_dao.created_at,
+        closed_at=return_dao.closed_at,
     )

@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.repositories.sale_repository import SaleRepository
-from app.services.mapper_service import simple_map
+from app.services.mapper_service import saleTransactionDao_toDto
 from app.models.DTO.saleTransaction_dto import SaleTransactionDTO
 from app.models.DTO.sale_product_association_dto import SaleProductAssociationDTO
 from app.models.DAO.productType_dao import ProductTypeDAO
@@ -20,16 +20,16 @@ class SaleController:
             "cost": 0.0
         }
         dao = self.repo.create_sale(sale_data)
-        return simple_map(dao, SaleTransactionDTO)
+        return saleTransactionDao_toDto(dao, SaleTransactionDTO)
 
     def get_all_sales(self) -> List[SaleTransactionDTO]:
         daos = self.repo.get_all_sales()
-        return [simple_map(d, SaleTransactionDTO) for d in daos]
+        return [saleTransactionDao_toDto(d, SaleTransactionDTO) for d in daos]
 
     def get_sale(self, sale_id: int) -> Optional[SaleTransactionDTO]:
         dao = self.repo.get_sale_by_id(sale_id)
         if dao:
-            return simple_map(dao, SaleTransactionDTO)
+            return saleTransactionDao_toDto(dao, SaleTransactionDTO)
         return None
 
     def delete_sale(self, sale_id: int) -> bool:
