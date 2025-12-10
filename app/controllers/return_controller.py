@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.repositories.return_repository import ReturnRepository
 from app.repositories.sale_repository import SaleRepository
-from app.services.mapper_service import simple_map
+from app.services.mapper_service import ReturnTransactionDao_toDto
 from app.models.DTO.returnTransaction_dto import ReturnTransactionDTO
 from app.models.DTO.return_product_association_dto import ReturnProductAssociationDTO
 from app.models.DAO.productType_dao import ProductTypeDAO
@@ -29,21 +29,21 @@ class ReturnController:
             "created_at": None  # Will be set by database
         }
         dao = self.repo.create_return(return_data)
-        return simple_map(dao, ReturnTransactionDTO)
+        return ReturnTransactionDao_toDto(dao, ReturnTransactionDTO)
 
     def get_all_returns(self) -> List[ReturnTransactionDTO]:
         daos = self.repo.get_all_returns()
-        return [simple_map(d, ReturnTransactionDTO) for d in daos]
+        return [ReturnTransactionDao_toDto(d, ReturnTransactionDTO) for d in daos]
 
     def get_return(self, return_id: int) -> Optional[ReturnTransactionDTO]:
         dao = self.repo.get_return_by_id(return_id)
         if dao:
-            return simple_map(dao, ReturnTransactionDTO)
+            return ReturnTransactionDao_toDto(dao, ReturnTransactionDTO)
         return None
 
     def get_returns_by_sale(self, sale_id: int) -> List[ReturnTransactionDTO]:
         daos = self.repo.get_returns_by_sale_id(sale_id)
-        return [simple_map(d, ReturnTransactionDTO) for d in daos]
+        return [ReturnTransactionDao_toDto(d, ReturnTransactionDTO) for d in daos]
 
     def delete_return(self, return_id: int) -> bool:
         return_obj = self.repo.get_return_by_id(return_id)
