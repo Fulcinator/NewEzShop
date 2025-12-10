@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from .position_dao import PositionDAO
     from .order_dao import OrderDAO
     from .shop_dao import ShopDAO
-    from .returnTranscation_dao import ReturnTransactionDAO
+    from .returnTransaction_dao import ReturnTransactionDAO
     from .product_dao import ProductDAO
 
 class ProductTypeDAO(Base):
