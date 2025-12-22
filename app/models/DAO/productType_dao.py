@@ -29,15 +29,14 @@ class ProductTypeDAO(Base):
         "OrderDAO",
         secondary="order_productType_association",
         back_populates="product_types"
-    )
-    
-    returns: Mapped[List["ReturnTransactionDAO"]] = relationship(
-        "ReturnTransactionDAO",
-        secondary="return_productType_association",
-        back_populates="product_types"
-    )
+    )   
 
     shop_id = Column(Integer, ForeignKey("shops.shop_id"), nullable=False)
     shop: Mapped["ShopDAO"] = relationship("ShopDAO", back_populates="product_types")
 
     products: Mapped[List["ProductDAO"]] = relationship("ProductDAO", back_populates="product_type")
+
+    return_lines: Mapped[List["ReturnProductAssociation"]] = relationship(
+        "ReturnProductAssociation",
+        back_populates="product_type"
+    )
