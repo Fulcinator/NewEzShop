@@ -6,7 +6,7 @@ from datetime import datetime
 
 if TYPE_CHECKING:
     from .returnTransaction_dao import ReturnTransactionDAO
-    from .loyaltyCard_dao import LoyaltyCard
+    from .loyaltyCard_dao import LoyaltyCardDAO
     from .credit_dao import CreditDAO
     from .sale_product_association import SaleProductAssociation
 
@@ -21,8 +21,8 @@ class SaleTransactionDAO(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     closed_at = Column(DateTime, nullable=True)
 
-    loyalty_card_id = Column(Integer, ForeignKey("loyalty_card.id"), nullable=True)
-    loyaltyCard: Mapped[Optional["LoyaltyCard"]] = relationship("LoyaltyCard", backref="sale_transactions", uselist=False)
+    loyalty_card_id = Column(Integer, ForeignKey("loyalty_cards.id"), nullable=True)
+    loyaltyCard: Mapped[Optional["LoyaltyCardDAO"]] = relationship("LoyaltyCardDAO", backref="sale_transactions", uselist=False)
 
     # 1-N relationship with sale line items
     lines: Mapped[List["SaleProductAssociation"]] = relationship(
