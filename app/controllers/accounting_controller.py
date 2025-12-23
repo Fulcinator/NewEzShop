@@ -1,8 +1,8 @@
 from app.repositories.accounting_repository import AccountingRepository
 
 class AccountingController:
-    def __init__(self, repo: AccountingRepository):
-        self.repo = repo
+    def __init__(self, repo: AccountingRepository | None = None): # Allow dependency injection for testing
+        self.repo = repo or AccountingRepository()
 
     async def get_balance(self) -> float:
         return self.repo.get_balance()

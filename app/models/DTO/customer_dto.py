@@ -24,3 +24,8 @@ class CustomerResponseDTO(BaseModel):
 
     class Config:
         from_attributes = True
+
+from app.models.DTO.loyalty_card_dto import LoyaltyCardResponseDTO
+
+CustomerUpdateDTO.model_rebuild()
+CustomerResponseDTO.model_rebuild()
