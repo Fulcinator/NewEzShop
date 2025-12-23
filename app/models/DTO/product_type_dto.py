@@ -31,6 +31,7 @@ class ProductTypeResponseDTO(BaseModel):
     quantity: int
     discountRate: Optional[float]
     notes: Optional[str]
+    position_id: Optional[int] = None
 
     class Config:
         from_attributes = True
