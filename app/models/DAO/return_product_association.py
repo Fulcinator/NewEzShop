@@ -27,3 +27,8 @@ class ReturnProductAssociation(Base):
         "ReturnTransactionDAO",
         back_populates="product_lines"
     )
+
+    product_type: Mapped["ProductTypeDAO"] = relationship(
+        "ProductTypeDAO",
+        back_populates="return_lines"
+    )
