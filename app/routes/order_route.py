@@ -48,8 +48,8 @@ async def record_order_arrival(order_id: int):
     return await controller.record_arrival(order_id)
 
 @router.get("/", response_model=List[OrderResponseDTO])
-async def list_orders():
+async def list_orders(order_status: Optional[OrderStatus] = None):
     """
     List all orders (issued, payed, completed)
     """
-    return await controller.list_orders(status)
+    return await controller.list_orders(order_status)

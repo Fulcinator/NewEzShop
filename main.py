@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models.errors.app_error import AppError
 from app.middleware.error_middleware import error_handler   
-from app.routes import  user_route, auth_route, inventory_route, order_route, accounting_route, sale_route, return_route
+from app.routes import  user_route, auth_route, inventory_route, order_route, accounting_route, sale_route, return_route, customer_route,product_type_route
 from contextlib import asynccontextmanager
 from app.database.database import engine, Base
 from logging import getLogger
@@ -39,6 +39,8 @@ app.include_router(return_route.router)
 app.include_router(inventory_route.router)
 app.include_router(order_route.router)
 app.include_router(accounting_route.router)
+app.include_router(customer_route.router)
+app.include_router(product_type_route.router)
 
 
 app.add_exception_handler(AppError, error_handler)

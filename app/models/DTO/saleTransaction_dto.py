@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,ConfigDict
 from typing import List, Optional
 from datetime import datetime
 from app.models.DTO.sale_product_association_dto import SaleProductAssociationDTO
@@ -15,5 +15,7 @@ class SaleTransactionDTO(BaseModel):
     loyalty_card_id: Optional[int] = None
     lines: List[SaleProductAssociationDTO] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True  # Allows mapping from DAO 'id' to DTO 'sale_transaction_id'
+    )

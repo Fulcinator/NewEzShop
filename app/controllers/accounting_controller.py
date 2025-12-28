@@ -5,10 +5,10 @@ class AccountingController:
         self.repo = repo or AccountingRepository()
 
     async def get_balance(self) -> float:
-        return self.repo.get_balance()
+        return await self.repo.get_balance()
 
     async def reset_balance(self) -> None:
-        self.repo.reset_balance()
+        await self.repo.reset_balance()
 
     async def set_balance(self, amount: float) -> None:
-        self.repo.set_balance(amount)
+        await self.repo.set_balance(amount)

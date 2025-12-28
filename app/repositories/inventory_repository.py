@@ -6,6 +6,7 @@ from app.models.DAO.productType_dao import ProductTypeDAO
 from app.models.DAO.position_dao import PositionDAO
 from app.models.errors.notfound_error import NotFoundError
 from app.models.errors.bad_request import BadRequestError
+from sqlalchemy.orm import selectinload
 
 class InventoryRepository:
     def __init__(self, session: Optional[AsyncSession] = None):
@@ -32,7 +33,9 @@ class InventoryRepository:
         self, product_type_id: int, aisleID: int, rackID: int, levelID: int
     ) -> ProductTypeDAO:
         async with await self._get_session() as session:
-            pt = await session.get(ProductTypeDAO, product_type_id)
+            stmt = select(ProductTypeDAO).where(ProductTypeDAO.id == product_type_id).options(selectinload(ProductTypeDAO.position))
+            result = await session.execute(stmt)
+            pt = result.scalar_one_or_none()
             if not pt:
                 raise NotFoundError(f"Product type with id '{product_type_id}' not found")
 
