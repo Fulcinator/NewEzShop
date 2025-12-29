@@ -206,3 +206,226 @@ def test_reimburse_return_success():
     assert result is not None
     assert "refund_amount" in result
     assert db.system_info.balance < 100
+
+
+def test_get_return_not_found():
+    controller, _ = make_controller()
+
+    result = controller.get_return(999)
+
+    assert result is None
+
+def test_delete_return_fails_if_reimbursed():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "REIMBURSED"
+    })
+
+    result = controller.delete_return(1)
+
+    assert result is False
+
+def test_add_product_return_not_open():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "CLOSED"
+    })
+
+    result = controller.add_product_to_return(1, "123", 1)
+
+    assert result is False
+
+def test_add_product_invalid_amount():
+    controller, db = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    db.product = type("P", (), {"id": 1, "barcode": "123"})()
+
+    result = controller.add_product_to_return(1, "123", 0)
+
+    assert result is False
+
+def test_add_product_product_not_found():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    result = controller.add_product_to_return(1, "UNKNOWN", 1)
+
+    assert result is False
+
+def test_add_product_original_sale_not_found():
+    controller, db = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 999,
+        "status": "OPEN"
+    })
+
+    class FakeProduct:
+        id = 1
+        barcode = "123"
+
+    db.product = FakeProduct()
+    db.sale = None
+
+    result = controller.add_product_to_return(1, "123", 1)
+
+    assert result is False
+
+
+def test_add_product_not_in_original_sale():
+    controller, db = make_controller()
+
+    class FakeProduct:
+        id = 1
+        barcode = "123"
+
+    class FakeSaleLine:
+        product_type_id = 2
+        quantity = 1
+
+    class FakeSale:
+        id = 1
+        sale_lines = [FakeSaleLine()]
+
+    db.product = FakeProduct()
+    db.sale = FakeSale()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    result = controller.add_product_to_return(1, "123", 1)
+
+    assert result is False
+
+def test_remove_product_return_not_open():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "CLOSED"
+    })
+
+    result = controller.remove_product_from_return(1, "123", 1)
+
+    assert result is False
+
+
+def test_remove_product_product_not_found():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    result = controller.remove_product_from_return(1, "UNKNOWN", 1)
+
+    assert result is False
+
+def test_remove_product_line_not_found():
+    controller, db = make_controller()
+
+    class FakeProduct:
+        id = 1
+        barcode = "123"
+
+    db.product = FakeProduct()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    result = controller.remove_product_from_return(1, "123", 1)
+
+    assert result is False
+
+def test_close_return_not_open():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "REIMBURSED"
+    })
+
+    result = controller.close_return(1)
+
+    assert result is False
+
+def test_remove_product_not_in_returned_products():
+    controller, db = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    controller.repo.add_returned_product(1, {
+        "product_type_id": 999,
+        "quantity": 2
+    })
+
+    class FakeProduct:
+        id = 1
+        barcode = "123"
+
+    db.product = FakeProduct()
+
+    result = controller.remove_product_from_return(
+        return_id=1,
+        barcode="123",
+        amount=1
+    )
+
+    assert result is False
+
+def test_start_return_sale_not_found():
+    controller, db = make_controller()
+
+    db.sale = None 
+
+    result = controller.start_return(999)
+
+    assert result is None
+
+def test_reimburse_return_sale_not_found():
+    controller, db = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 999,
+        "status": "CLOSED"
+    })
+
+    db.sale = None
+
+    result = controller.reimburse_return(1)
+
+    assert result is None
+
+def test_get_returns_by_sale():
+    controller, _ = make_controller()
+
+    controller.repo.create_return({
+        "sale_transaction_id": 1,
+        "status": "OPEN"
+    })
+
+    results = controller.get_returns_by_sale(1)
+
+    assert len(results) == 1
+    assert results[0].sale_transaction_id == 1

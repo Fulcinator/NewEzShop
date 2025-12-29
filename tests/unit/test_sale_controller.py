@@ -194,3 +194,62 @@ def test_compute_points_success(controller, repo):
 def test_compute_points_sale_not_found(controller, repo):
     repo.get_sale_by_id.return_value = None
     assert controller.compute_points(1) is None
+
+def test_apply_discount_to_product_success(controller, repo):
+    sale = FakeSale(status="OPEN")
+    product = FakeProduct(quantity=10)
+    line = FakeLine(product.id, quantity=2, unit_price=10)
+
+    repo.get_sale_by_id.return_value = sale
+    repo.db.query().filter().first.return_value = product
+    repo.get_line_items.return_value = [line]
+
+    result = controller.apply_discount_to_product(
+        sale_id=1,
+        product_barcode="ABC",
+        discount_rate=0.3
+    )
+
+    assert result is True
+    assert line.discount_rate == 0.3
+
+
+def test_apply_discount_to_product_invalid_discount(controller, repo):
+    repo.get_sale_by_id.return_value = FakeSale(status="OPEN")
+
+    result = controller.apply_discount_to_product(
+        sale_id=1,
+        product_barcode="ABC",
+        discount_rate=1.5
+    )
+
+    assert result is False
+
+def test_add_product_invalid_amount(controller, repo):
+    repo.get_sale_by_id.return_value = FakeSale(status="OPEN")
+
+    result = controller.add_product_to_sale(1, "ABC", 0)
+
+    assert result is False
+
+
+def test_remove_product_sale_not_open(controller, repo):
+    repo.get_sale_by_id.return_value = FakeSale(status="PAID")
+
+    result = controller.remove_product_from_sale(1, "ABC", 1)
+
+    assert result is False
+
+def test_remove_product_line_not_found(controller, repo):
+    sale = FakeSale(status="OPEN")
+    product = FakeProduct(quantity=5)
+
+    repo.get_sale_by_id.return_value = sale
+    repo.db.query().filter().first.return_value = product
+    repo.get_line_items.return_value = [
+        FakeLine(product_id=999, quantity=1, unit_price=5)
+    ]
+
+    result = controller.remove_product_from_sale(1, "ABC", 1)
+
+    assert result is False
