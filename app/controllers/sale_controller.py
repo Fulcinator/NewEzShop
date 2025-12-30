@@ -142,7 +142,7 @@ class SaleController:
         if not product:
             return False
         
-        # Find and update the line item
+        # Find and update the line item.
         lines = self.repo.get_line_items(sale_id)
         for line in lines:
             if line.product_type_id == product.id:
