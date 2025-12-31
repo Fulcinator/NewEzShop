@@ -1,14 +1,8 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 from datetime import datetime
-
-if TYPE_CHECKING:
-    from .saleTransaction_dao import SaleTransactionDAO
-    from .return_product_association import ReturnProductAssociation
-    from .debit_dao import DebitDAO
-
 class ReturnTransactionDAO(Base):
     __tablename__ = "return_transactions"
 

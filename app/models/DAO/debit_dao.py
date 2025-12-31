@@ -2,12 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from app.models.DAO.balanceOperation_dao import BalanceOperationDAO
-from typing import TYPE_CHECKING, Optional
-
-if TYPE_CHECKING:
-    from .order_dao import OrderDAO
-    from .returnTranscation_dao import ReturnTransactionDAO
-
+from typing import Optional
 class DebitDAO(BalanceOperationDAO):
     __tablename__ = "debits"
 

@@ -1,10 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING, Optional
-
-if TYPE_CHECKING:
-    from .loyaltyCard_dao import LoyaltyCardDAO
+from typing import Optional
 
 class CustomerDAO(Base):
     __tablename__ = "customers"

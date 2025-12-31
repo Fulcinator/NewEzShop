@@ -1,11 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, relationship
-from typing import TYPE_CHECKING
 from app.database.database import Base
-
-if TYPE_CHECKING:
-    from .returnTransaction_dao import ReturnTransactionDAO
-
 
 class ReturnProductAssociation(Base):
     """Return line item - individual product returned.

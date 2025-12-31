@@ -1,12 +1,6 @@
 from sqlalchemy import Column, Integer, Float, String, ForeignKey
 from sqlalchemy.orm import Mapped, relationship
-from typing import TYPE_CHECKING
 from app.database.database import Base
-
-if TYPE_CHECKING:
-    from .saleTransaction_dao import SaleTransactionDAO
-
-
 class SaleProductAssociation(Base):
     __tablename__ = "sale_product_association"
 

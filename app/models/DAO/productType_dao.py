@@ -1,15 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from app.database.database import Base
+from typing import List, Optional
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING, List, Optional
-
-if TYPE_CHECKING:
-    from .position_dao import PositionDAO
-    from .order_dao import OrderDAO
-    from .shop_dao import ShopDAO
-    from .returnTransaction_dao import ReturnTransactionDAO
-    from .product_dao import ProductDAO
-
+from app.models.DAO.order_productType_association import order_productType_association
 class ProductTypeDAO(Base):
     __tablename__ = "product_types"
 
@@ -27,7 +20,7 @@ class ProductTypeDAO(Base):
 
     orders: Mapped[List["OrderDAO"]] = relationship(
         "OrderDAO",
-        secondary="order_productType_association",
+        secondary=order_productType_association,
         back_populates="product_types"
     )   
 

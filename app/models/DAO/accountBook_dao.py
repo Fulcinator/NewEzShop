@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING, List
-
-if TYPE_CHECKING:
-    from .shop_dao import ShopDAO
-    from .balanceOperation_dao import BalanceOperationDAO
-
+from typing import List
 class AccountBookDAO(Base):
     __tablename__ = "account_books"
 

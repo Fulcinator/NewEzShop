@@ -1,10 +1,7 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING, Optional
-
-if TYPE_CHECKING:
-    from .productType_dao import ProductTypeDAO
+from typing import Optional
 
 class PositionDAO(Base):
     __tablename__ = "positions"

@@ -10,6 +10,28 @@ from contextlib import asynccontextmanager
 from app.database.database import engine, Base
 from logging import getLogger
 
+# Import all DAO modules to ensure they are registered with SQLAlchemy
+from app.models.DAO import (
+    accountBook_dao,
+    balanceOperation_dao,
+    credit_dao,
+    customer_dao,
+    debit_dao,
+    loyaltyCard_dao,
+    order_dao,
+    order_productType_association,
+    position_dao,
+    product_dao,
+    productType_dao,
+    return_product_association,
+    returnTransaction_dao,
+    sale_product_association,
+    saleTransaction_dao,
+    shop_dao,
+    system_dao,
+    user_dao
+)
+
 logger = getLogger(__name__)
 
 @asynccontextmanager

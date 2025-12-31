@@ -1,11 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .accountBook_dao import AccountBookDAO
-
 class BalanceOperationDAO(Base):
     __tablename__ = "balance_operations"
 
