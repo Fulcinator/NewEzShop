@@ -33,16 +33,17 @@ def userdao_to_responsedto(user_dao: UserDAO) -> UserDTO:
     )
 
 def ProductTypeDao_toDto(product_type_dao: ProductTypeDAO, dto_class: ProductTypeResponseDTO) -> ProductTypeResponseDTO:
+    pos = product_type_dao.position
+    position_str = f"{pos.aisleID}-{pos.rackID}-{pos.levelID}" if pos else None
     return dto_class(
         id=product_type_dao.id,
         barcode=product_type_dao.barcode,
-        name=product_type_dao.name,
         description=product_type_dao.description,
-        sellPrice=product_type_dao.sellPrice,
+        price_per_unit=product_type_dao.price_per_unit,
         quantity=product_type_dao.quantity,
         discountRate=product_type_dao.discountRate,
-        notes=product_type_dao.notes,
-        position_id=product_type_dao.position.id if product_type_dao.position else None
+        note=product_type_dao.note,
+        position=position_str
     )
 
 def saleTransactionDao_toDto(sale_dao: SaleTransactionDAO, dto_class: SaleTransactionDTO) -> SaleTransactionDTO:
