@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, String, Float, Enum
+from sqlalchemy import Table, Column, Integer, String, Float, Enum, DateTime, func
 from app.database.database import Base
 from sqlalchemy.orm import relationship, Mapped
 from typing import List
@@ -9,10 +9,16 @@ class OrderDAO(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, name='order_id', primary_key=True, autoincrement=True)
-    supplier = Column(String, nullable=False)
+    supplier = Column(String, nullable=True)  # Can be null for reorder warnings
     status = Column(Enum(OrderStatus), nullable=False)
     quantity = Column(Integer, nullable=False)
     price_per_unit = Column(Float, nullable=False)
+
+    issue_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now()
+    )
 
     product_types: Mapped[List["ProductTypeDAO"]] = relationship(
         "ProductTypeDAO",
