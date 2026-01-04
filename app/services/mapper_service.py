@@ -1,4 +1,5 @@
 from app.models.DAO.user_dao import UserDAO
+from app.models.DTO.sale_product_association_dto import SaleProductAssociationDTO
 from app.models.DTO.user_dto import UserDTO
 from app.models.DTO.token_dto import TokenDTO
 from app.models.DTO.error_dto import ErrorDTO
@@ -46,17 +47,50 @@ def ProductTypeDao_toDto(product_type_dao: ProductTypeDAO, dto_class: ProductTyp
         position=position_str
     )
 
-def saleTransactionDao_toDto(sale_dao: SaleTransactionDAO, dto_class: SaleTransactionDTO) -> SaleTransactionDTO:
+def saleTransactionDao_toDto(
+    sale_dao: SaleTransactionDAO,
+    dto_class: SaleTransactionDTO,
+    include_lines: bool = False
+) -> SaleTransactionDTO:
+
+    # exclude lines (es. POST /sales)
+    if not include_lines:
+        return dto_class(
+            sale_transaction_id=sale_dao.id,
+            status=sale_dao.status,
+            cost=sale_dao.cost,
+            payment_type=sale_dao.paymentType,
+            discount_rate=sale_dao.discountRate,
+            created_at=sale_dao.created_at,
+            closed_at=sale_dao.closed_at,
+            loyalty_card_id=sale_dao.loyalty_card_id,
+            lines=[]
+        )
+
+    # include lines (GET)
+    line_dtos = [
+        SaleProductAssociationDTO(
+            id=line.id,
+            sale_transaction_id=line.sale_transaction_id,
+            product_barcode=line.product_barcode,
+            quantity=line.quantity,
+            unit_price=line.unit_price,
+            discount_rate=line.discount_rate
+        )
+        for line in sale_dao.lines
+    ]
+
     return dto_class(
-        id=sale_dao.id,
+        sale_transaction_id=sale_dao.id,
         status=sale_dao.status,
         cost=sale_dao.cost,
-        paymentType=sale_dao.paymentType,
+        payment_type=sale_dao.paymentType,
         discount_rate=sale_dao.discountRate,
         created_at=sale_dao.created_at,
         closed_at=sale_dao.closed_at,
         loyalty_card_id=sale_dao.loyalty_card_id,
-        )
+        lines=line_dtos
+    )
 
 def ReturnTransactionDao_toDto(return_dao: ReturnTransactionDAO, dto_class: ReturnTransactionDTO) -> ReturnTransactionDTO:
     return dto_class(
