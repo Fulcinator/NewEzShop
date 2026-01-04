@@ -103,8 +103,9 @@ async def create_customer_card(card: LoyaltyCardCreateDTO):
 async def attach_card_to_customer(customer_id: int, card_id: str):
     try:
         # Convert card_id to int since loyalty cards use int IDs internally
-        card_id_int = int(card_id)
-        return await customer_controller.attach_loyalty_card_to_customer(customer_id, card_id_int)
+        #card_id_int = int(card_id) in dao is str, so we convert to str with zero padding
+        card_id = str(card_id).zfill(10)
+        return await customer_controller.attach_loyalty_card_to_customer(customer_id, card_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Card ID must be a valid integer")
     except NotFoundError as e:
@@ -120,8 +121,8 @@ async def attach_card_to_customer(customer_id: int, card_id: str):
 )
 async def modify_card_points(card_id: str, points: int = Query(...)):
     try:
-        card_id_int = int(card_id)
-        return await loyalty_card_controller.add_points(card_id_int, points)
+        card_id = str(card_id).zfill(10)
+        return await loyalty_card_controller.add_points(card_id, points)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Card ID must be a valid integer")
     except NotFoundError as e:

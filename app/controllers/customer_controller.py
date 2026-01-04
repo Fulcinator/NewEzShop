@@ -24,7 +24,6 @@ class CustomerController:
     async def list_customers(self) -> List[CustomerResponseDTO]:
         daos = await self.customer_repo.list_customers()
         return [CustomerResponseDTO.model_validate(dao) for dao in daos]
-
     async def search_customers(
         self,
         name: Optional[str] = None,

@@ -22,6 +22,6 @@ class LoyaltyCardController:
         updated_dao = await self.repo.attach_loyalty_card_to_customer(card_id, customer_id)
         return LoyaltyCardResponseDTO.model_validate(updated_dao)
 
-    async def add_points(self, card_id: int, points: int) -> LoyaltyCardResponseDTO:
+    async def add_points(self, card_id: str, points: int) -> LoyaltyCardResponseDTO:
         updated_dao = await self.repo.add_points(card_id, points)
         return LoyaltyCardResponseDTO.model_validate(updated_dao)

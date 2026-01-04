@@ -1,24 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
-
 class LoyaltyCardCreateDTO(BaseModel):
-    card_code: str = Field(min_length=10, max_length=10)
-    customer_id: Optional[int] = None
+    card_id: str = Field(min_length=10, max_length=10)
     points: Optional[int] = Field(default=0, ge=0)
 
-
 class LoyaltyCardUpdateDTO(BaseModel):
-    card_code: Optional[str] = Field(None, min_length=10, max_length=10)
-    customer_id: Optional[int] = None
+    card_id: Optional[str] = Field(None, min_length=10, max_length=10)
     points: Optional[int] = Field(None, ge=0)
 
-
 class LoyaltyCardResponseDTO(BaseModel):
-    id: int
-    card_code: str
+    card_id: str
     points: int
-    customer_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
