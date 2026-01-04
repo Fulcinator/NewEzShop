@@ -8,8 +8,8 @@ class SaleTransactionDTO(BaseModel):
     id: int = Field(alias="sale_transaction_id", default=None)
     status: str  # OPEN, PENDING, PAID
     cost: float
-    paymentType: Optional[str] = None  # CASH, CREDIT_CARD
-    discountRate: float = 0.0
+    payment_type: Optional[str] = None  # CASH, CREDIT_CARD
+    discount_rate: float = 0.0
     created_at: datetime
     closed_at: Optional[datetime] = None
     loyalty_card_id: Optional[int] = None
