@@ -4,11 +4,11 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from app.database.database import AsyncSessionLocal
+from app.models.DAO.debit_dao import DebitDAO
 from app.models.DAO.order_productType_association import order_productType_association
-from app.models.DAO.balanceOperation_dao import BalanceOperationDAO
-from app.models.DAO.credit_dao import CreditDAO
 from app.models.DAO.order_dao import OrderDAO
 from app.models.DAO.productType_dao import ProductTypeDAO
+from app.models.DAO.system_dao import SystemInfoDAO
 from app.models.errors.balance_error import BalanceError
 from app.models.order_status import OrderStatus
 from app.models.errors.notfound_error import NotFoundError
@@ -29,11 +29,15 @@ class OrderRepository:
             raise NotFoundError(f"Product type with id '{product_type_id}' not found")
         return pt
 
-    async def _get_balance(self, session):
-        result = await session.execute(
-            select(func.sum(BalanceOperationDAO.amount))
-        )
-        return result.scalar() or 0
+    async def _get_system_info(self, session):
+        result = await session.execute(select(SystemInfoDAO))
+        sys = result.scalar_one_or_none()
+        if not sys:
+            sys = SystemInfoDAO(balance=0.0)
+            session.add(sys)
+            await session.commit()
+            await session.refresh(sys)
+        return sys
     
     async def issue_reorder_warning(
         self, product_barcode: str, quantity: int, price_per_unit: float
@@ -79,9 +83,7 @@ class OrderRepository:
             result = await session.execute(stmt)
             return result.scalar_one()
 
-    async def create_and_pay_order(
-        self, product_barcode: str, quantity: int, price_per_unit: float
-    ) -> OrderDAO:
+    async def create_and_pay_order(self, product_barcode: str, quantity: int, price_per_unit: float) -> OrderDAO:
 
         if quantity <= 0:
             raise BadRequestError("Quantity must be > 0")
@@ -101,9 +103,10 @@ class OrderRepository:
             # 2. Calculate total cost
             total_cost = quantity * price_per_unit
 
-            # 3. Verify balance
-            current_balance = await self._get_balance(session)
-            if current_balance - total_cost < 0:
+            # 3. Get system balance
+            sys = await self._get_system_info(session)
+
+            if sys.balance - total_cost < 0:
                 raise BalanceError("Insufficient balance for the operation")
 
             # 4. Create order in PAYED state
@@ -124,19 +127,22 @@ class OrderRepository:
                 )
             )
 
-            # 5. Register the negative credit
-            credit = CreditDAO(
-                amount=-total_cost,
-                sale_transaction_id=None,
+            # 5. Register DEBIT
+            debit = DebitDAO(
+                amount=total_cost,
+                order_id=order.id,
                 date=datetime.utcnow(),
-                account_book_id=1,
+                account_book_id=1
             )
-            session.add(credit)
+            session.add(debit)
 
-            # 6. Commit
+            # 6. Update system balance
+            sys.balance -= total_cost
+
+            # 7. Commit
             await session.commit()
 
-            # 7. Reload order with relationship
+            # 8. Reload order with relationship
             stmt = (
                 select(OrderDAO)
                 .where(OrderDAO.id == order.id)
@@ -169,23 +175,28 @@ class OrderRepository:
             # 2. Calculate total cost
             total_cost = order.quantity * order.price_per_unit
 
-            # 3. Verify balance
-            current_balance = await self._get_balance(session)
-            if current_balance - total_cost < 0:
+            # 3. Get system balance
+            sys = await self._get_system_info(session)
+
+            if sys.balance - total_cost < 0:
                 raise BalanceError("Insufficient balance for the operation")
 
             # 4. Update order status
             order.status = OrderStatus.PAYED
 
-            # 5. Register negative credit
-            credit = CreditDAO(
-                amount=-total_cost,
+            # 5. Register DEBIT
+            debit = DebitDAO(
+                amount=total_cost,
+                order_id=order.id,
                 date=datetime.utcnow(),
                 account_book_id=1
             )
-            session.add(credit)
+            session.add(debit)
 
-            # 6. Commit
+            # 6. Update system balance
+            sys.balance -= total_cost
+
+            # 7. Commit
             await session.commit()
 
     async def record_arrival_and_update_quantity(self, order_id: int):

@@ -1,10 +1,13 @@
+from datetime import datetime 
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update
 from typing import List, Optional
 
+from app.models.DAO.credit_dao import CreditDAO
 from app.models.DAO.saleTransaction_dao import SaleTransactionDAO
 from app.models.DAO.sale_product_association import SaleProductAssociation
+from app.models.DAO.balanceOperation_dao import BalanceOperationDAO
 from app.models.DAO.productType_dao import ProductTypeDAO
 from app.models.DAO.system_dao import SystemInfoDAO
 from app.models.errors.notfound_error import NotFoundError
@@ -46,12 +49,28 @@ class SaleRepository:
         return result.scalar_one_or_none()
 
 
-    async def delete_sale(self, sale_id: int) -> bool:
-        result = await self.db.execute(
-            delete(SaleTransactionDAO).where(SaleTransactionDAO.id == sale_id)
-        )
+    async def delete_sale(self, sale_id: int):
+        sale = await self.get_sale_by_id(sale_id)
+        if not sale:
+            raise NotFoundError("Sale not found")
+
+        # verify status
+        if sale.status == "PAID":
+            raise BadRequestError("Cannot delete a paid sale")
+
+        # reintegrate stock
+        for line in sale.lines:
+            result = await self.db.execute(
+                select(ProductTypeDAO).where(ProductTypeDAO.id == line.product_type_id)
+            )
+            product = result.scalar_one()
+            product.quantity += line.quantity
+
+        # delete sale (cascade delete also the lines)
+        await self.db.delete(sale)
         await self.db.commit()
-        return result.rowcount > 0
+
+        return True
 
     async def add_product_to_sale(self, sale_id: int, barcode: str, amount: int):
         # 1. Sale exists?
@@ -59,7 +78,7 @@ class SaleRepository:
         if not sale:
             raise NotFoundError("Sale not found")
 
-        # 2. Sale must be OPEN
+        # 2. Sale needs to be OPEN
         if sale.status != "OPEN":
             raise InvalidStateError("Cannot modify the sale")
 
@@ -76,24 +95,35 @@ class SaleRepository:
         if product.quantity < amount:
             raise BadRequestError("Insufficient stock")
 
-        # 6. Deduction of stock
+        # 6. search existing line
+        result = await self.db.execute(
+            select(SaleProductAssociation).where(
+                SaleProductAssociation.sale_transaction_id == sale_id,
+                SaleProductAssociation.product_barcode == barcode
+            )
+        )
+        line = result.scalar_one_or_none()
+
+        # 7. if exists → update quantity
+        if line:
+            line.quantity += amount
+        else:
+            # 8. Otherwise create new line
+            line = SaleProductAssociation(
+                sale_transaction_id=sale_id,
+                product_type_id=product.id,
+                product_barcode=product.barcode,
+                quantity=amount,
+                unit_price=product.price_per_unit,
+                discount_rate=0.0
+            )
+            self.db.add(line)
+
+        # 9. Deduction stock
         product.quantity -= amount
 
-        # 7. create association line
-        line = SaleProductAssociation(
-            sale_transaction_id=sale_id,
-            product_type_id=product.id,
-            product_barcode=product.barcode,
-            quantity=amount,
-            unit_price=product.price_per_unit,
-            discount_rate=0.0
-        )
-
-        self.db.add(line)
         await self.db.commit()
         await self.db.refresh(line)
-
-        return line
 
 
     async def remove_product_from_sale(self, sale_id: int, barcode: str, amount: int):
@@ -102,7 +132,7 @@ class SaleRepository:
         if not sale:
             raise NotFoundError("Sale not found")
 
-        # 2. Sale must be OPEN
+        # 2. Sale needs to be OPEN
         if sale.status != "OPEN":
             raise InvalidStateError("Cannot modify the sale")
 
@@ -115,7 +145,7 @@ class SaleRepository:
         if not product:
             raise NotFoundError("Product not found")
 
-        # 5. Line exists in sale?
+        # 5. Search line (now it's just one)
         result = await self.db.execute(
             select(SaleProductAssociation).where(
                 SaleProductAssociation.sale_transaction_id == sale_id,
@@ -126,18 +156,17 @@ class SaleRepository:
         if not line:
             raise NotFoundError("Product not found in sale")
 
-        # 6. Removal or reduction of quantity
+        # 6. Removal or reduction
         if amount >= line.quantity:
             # reintegrate all
             product.quantity += line.quantity
             await self.db.delete(line)
         else:
-            # reintegrate only the removed part
+            # reintegrate only amount
             product.quantity += amount
             line.quantity -= amount
 
         await self.db.commit()
-        return True
 
 
     async def apply_discount_to_sale(self, sale_id: int, discount_rate: float):
@@ -228,6 +257,8 @@ class SaleRepository:
 
         # 5. Sale not empty → close (PENDING)
         sale.status = "PENDING"
+        sale.closed_at = datetime.utcnow()
+
         await self.db.commit()
         await self.db.refresh(sale)
 
@@ -237,7 +268,7 @@ class SaleRepository:
         if not sale:
             raise NotFoundError("Sale not found")
 
-        # 2. Sale should be PENDING
+        # 2. Sale must be PENDING
         if sale.status != "PENDING":
             raise InvalidStateError("Cannot modify the sale")
 
@@ -245,7 +276,7 @@ class SaleRepository:
         if cash_amount < 0:
             raise BadRequestError("Cash amount cannot be negative")
 
-        # 4. Calculate total of the sale
+        # 4. Calculate net total
         result = await self.db.execute(
             select(SaleProductAssociation).where(
                 SaleProductAssociation.sale_transaction_id == sale_id
@@ -257,34 +288,43 @@ class SaleRepository:
         for line in lines:
             total += line.unit_price * line.quantity * (1 - line.discount_rate)
 
-        # 5. Apply global discount of the sale (if present)
-        total = total * (1 - sale.discountRate)
+        total *= (1 - sale.discountRate)
 
-        # 6. Check if the customer has given enough money
         if cash_amount < total:
             raise BadRequestError("Insufficient cash amount")
 
-        # 7. Calculate change
         change = round(cash_amount - total, 2)
 
-        # 8. Update sale status
+        # 5. Update sale status
         sale.status = "PAID"
 
-        # 9. Update system balance
-        result = await self.db.execute(select(SystemInfoDAO))
-        sys = result.scalar_one_or_none()
-
+        # 6. Update system balance
+        sys_result = await self.db.execute(select(SystemInfoDAO))
+        sys = sys_result.scalar_one_or_none()
         if not sys:
-            sys = SystemInfoDAO(balance=0.0)
-            self.db.add(sys)
-            await self.db.commit()
-            await self.db.refresh(sys)
+            raise NotFoundError("System info not initialized")
         sys.balance += total
+        sale.cost = total
+        sale.paymentType = "CASH"
+
+
+        # 7. Register accounting operation (CreditDAO)
+        credit = CreditDAO(
+            amount=total,
+            description=f"Sale #{sale_id} paid",
+            date=datetime.utcnow(),
+            account_book_id=1,  # default
+            sale_transaction_id=sale_id
+        )
+        self.db.add(credit)
 
         await self.db.commit()
         await self.db.refresh(sale)
         await self.db.refresh(sys)
 
+        # 8. Set closed_at if not set should not be needed but just in case
+        if sale.closed_at is None:
+            sale.closed_at = datetime.utcnow()
         return {"change": change}
 
 

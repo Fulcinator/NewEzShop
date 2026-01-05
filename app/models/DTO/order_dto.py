@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from app.models.order_status import OrderStatus
 
@@ -10,12 +10,17 @@ class OrderCreateDTO(BaseModel):
     quantity: int = Field(ge=1)
     price_per_unit: float = Field(gt=0)
 
+class OrderProductTypeDTO(BaseModel):
+    product_type_id: int
+    barcode: str
+    description: str
+    quantity: int
+
 class OrderResponseDTO(BaseModel):
-    id: int
-    product_barcode: str
+    order_id: int
+    supplier: str | None
+    status: str
     quantity: int
     price_per_unit: float
-    status: OrderStatus
-    issue_date: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+    issue_date: str
+    product_types: List[OrderProductTypeDTO]

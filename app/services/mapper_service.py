@@ -1,4 +1,6 @@
+from app.models.DAO.order_dao import OrderDAO
 from app.models.DAO.user_dao import UserDAO
+from app.models.DTO.order_dto import OrderProductTypeDTO, OrderResponseDTO
 from app.models.DTO.sale_product_association_dto import SaleProductAssociationDTO
 from app.models.DTO.user_dto import UserDTO
 from app.models.DTO.token_dto import TokenDTO
@@ -99,4 +101,23 @@ def ReturnTransactionDao_toDto(return_dao: ReturnTransactionDAO, dto_class: Retu
         status=return_dao.status,
         created_at=return_dao.created_at,
         closed_at=return_dao.closed_at,
+    )
+
+def orderDao_toDto(order: OrderDAO) -> OrderResponseDTO:
+    return OrderResponseDTO(
+        order_id=order.id,
+        supplier=order.supplier,
+        status=order.status.value,
+        quantity=order.quantity,
+        price_per_unit=order.price_per_unit,
+        issue_date=order.issue_date.isoformat(),
+        product_types=[
+            OrderProductTypeDTO(
+                product_type_id=pt.id,
+                barcode=pt.barcode,
+                description=pt.description,
+                quantity=pt.quantity
+            )
+            for pt in order.product_types
+        ]
     )
