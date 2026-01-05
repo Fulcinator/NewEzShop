@@ -11,6 +11,7 @@ from app.models.DAO.saleTransaction_dao import SaleTransactionDAO
 from app.models.DTO.saleTransaction_dto import SaleTransactionDTO
 from app.models.DTO.returnTransaction_dto import ReturnTransactionDTO
 from app.models.DAO.returnTransaction_dao import ReturnTransactionDAO
+from app.models.DTO.return_product_association_dto import ReturnProductAssociationDTO
 
 
 def create_error_dto(code: int, message: str, name: str) -> ErrorDTO:
@@ -95,12 +96,24 @@ def saleTransactionDao_toDto(
     )
 
 def ReturnTransactionDao_toDto(return_dao: ReturnTransactionDAO, dto_class: ReturnTransactionDTO) -> ReturnTransactionDTO:
+    line_dtos = [
+        ReturnProductAssociationDTO(
+            id=line.id,
+            return_id=line.return_transaction_id,
+            product_barcode=line.product_barcode,
+            quantity=line.quantity,
+            price_per_unit=line.unit_price,
+        )
+        for line in return_dao.product_lines
+    ]
+
     return dto_class(
         id=return_dao.id,
-        sale_transaction_id=return_dao.sale_transaction_id,
+        sale_id=return_dao.sale_transaction_id,
         status=return_dao.status,
         created_at=return_dao.created_at,
         closed_at=return_dao.closed_at,
+        lines=line_dtos,
     )
 
 def orderDao_toDto(order: OrderDAO) -> OrderResponseDTO:
