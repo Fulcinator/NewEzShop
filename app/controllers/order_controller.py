@@ -3,6 +3,7 @@ from typing import List, Optional
 from app.repositories.order_repository import OrderRepository
 from app.models.DTO.order_dto import OrderCreateDTO, OrderResponseDTO
 from app.models.order_status import OrderStatus
+from app.services.mapper_service import orderDao_toDto
 
 class OrderController:
     def __init__(self):
@@ -47,7 +48,7 @@ class OrderController:
         
     async def list_orders(self, status: Optional[OrderStatus]) -> List[OrderResponseDTO]:
         orders = await self.repo.list_orders(status)
-        return [self._to_response_dto(o) for o in orders]
+        return [orderDao_toDto(o) for o in orders]
     
 """ not used anymore
     async def send_and_pay(self, dto: OrderCreateDTO) -> OrderResponseDTO:
