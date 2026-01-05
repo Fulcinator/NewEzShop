@@ -1,8 +1,10 @@
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from app.database.database import AsyncSessionLocal
+from app.models.DAO.order_productType_association import order_productType_association
 from app.models.DAO.balanceOperation_dao import BalanceOperationDAO
 from app.models.DAO.credit_dao import CreditDAO
 from app.models.DAO.order_dao import OrderDAO
@@ -12,6 +14,7 @@ from app.models.order_status import OrderStatus
 from app.models.errors.notfound_error import NotFoundError
 from app.models.errors.bad_request import BadRequestError
 from app.models.errors.ordes_errors import GeneralError, InvalidStateError
+
 
 class OrderRepository:
     def __init__(self, session: Optional[AsyncSession] = None):
@@ -55,8 +58,17 @@ class OrderRepository:
                 quantity=quantity,
                 price_per_unit=price_per_unit,
             )
-            order.product_types.append(pt)
+            
             session.add(order)
+            await session.flush()
+
+            await session.execute(
+                order_productType_association.insert().values(
+                    order_id=order.id,
+                    product_type_id=pt.id
+                )
+            )   
+
             await session.commit()
 
             stmt = (
@@ -101,14 +113,23 @@ class OrderRepository:
                 quantity=quantity,
                 price_per_unit=price_per_unit
             )
-            order.product_types.append(pt)
+            
             session.add(order)
             await session.flush()
+
+            await session.execute(
+                order_productType_association.insert().values(
+                    order_id=order.id,
+                    product_type_id=pt.id
+                )
+            )
 
             # 5. Register the negative credit
             credit = CreditDAO(
                 amount=-total_cost,
-                sale_transaction_id=None
+                sale_transaction_id=None,
+                date=datetime.utcnow(),
+                account_book_id=1,
             )
             session.add(credit)
 
@@ -157,7 +178,11 @@ class OrderRepository:
             order.status = OrderStatus.PAYED
 
             # 5. Register negative credit
-            credit = CreditDAO(amount=-total_cost)
+            credit = CreditDAO(
+                amount=-total_cost,
+                date=datetime.utcnow(),
+                account_book_id=1
+            )
             session.add(credit)
 
             # 6. Commit
