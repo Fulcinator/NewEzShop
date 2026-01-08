@@ -184,6 +184,7 @@ class ReturnRepository:
                 product_barcode=product.barcode,
                 unit_price=sale_line.unit_price,
             )
+            ret.product_lines.append(ret_line)
             self.db.add(ret_line)
 
         await self.db.commit()
@@ -216,6 +217,8 @@ class ReturnRepository:
             raise NotFoundError("Product not found in return")
 
         if amount >= ret_line.quantity:
+            if ret_line in ret.product_lines:
+                    ret.product_lines.remove(ret_line)
             await self.db.delete(ret_line)
         else:
             ret_line.quantity -= amount

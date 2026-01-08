@@ -12,12 +12,11 @@ from init_db import reset, init_db
 # Set env before imports
 os.environ["TESTING"] = "1"
 
-# --- DATABASE URL CONFIGURATION ---
-# Replace this with your actual DB connection string if not using SQLite
-# For example: "postgresql://user:pass@localhost/dbname"
-TEST_DATABASE_URL = "sqlite:///./test.db" 
+# Import config AFTER setting TESTING env var
+from app.config.config import DATABASE_URL
+from pathlib import Path
 
-sync_url = TEST_DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+sync_url = DATABASE_URL.replace("+aiosqlite", "")
 
 sync_engine = create_engine(
     sync_url, 
@@ -69,7 +68,8 @@ def auth_tokens(client):
     loop = asyncio.new_event_loop()
     loop.run_until_complete(reset())
     loop.run_until_complete(init_db())
-
+    
+    # Get admin token first
     users = {
         "admin": {"username": "admin", "password": "admin"},
         "manager": {"username": "ShopManager", "password": "ShManager"},
@@ -81,5 +81,26 @@ def auth_tokens(client):
         response = client.post(BASE_URL + "/auth", json=creds)
         assert response.status_code == 200
         tokens[role] = f"Bearer {response.json()['token']}"
+
+    # Initialize system_info using the API endpoint (this ensures async visibility)
+    set_balance_response = client.post(
+        BASE_URL + "/balance/set",
+        params={"amount": 10000.0},
+        headers={"Authorization": tokens["admin"]}
+    )
+    
+    if set_balance_response.status_code == 201:
+        print("\n[OK] System info balance set to 10000.0 via API\n")
+        
+        # Verify it worked
+        verify_response = client.get(
+            BASE_URL + "/balance",
+            headers={"Authorization": tokens["admin"]}
+        )
+        if verify_response.status_code == 200:
+            balance = verify_response.json().get("balance", 0)
+            print(f"[OK] System info verified - balance: {balance}\n")
+    else:
+        print(f"[WARN] Could not set system_info balance: {set_balance_response.status_code} - {set_balance_response.text}\n")
 
     return tokens

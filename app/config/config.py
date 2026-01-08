@@ -9,7 +9,9 @@ DATA_DIR.mkdir(exist_ok=True)
 IS_TEST = os.getenv("TESTING", "0") == "1"
 # Database
 if IS_TEST:
-    DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+    # Use a file-based test database instead of in-memory to allow persistence between connections
+    TEST_DB_PATH = DATA_DIR / "test_database.sqlite"
+    DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
 else:
     DB_FILE_PATH = DATA_DIR / "database.sqlite"
     DATABASE_URL = f"sqlite+aiosqlite:///{DB_FILE_PATH}"

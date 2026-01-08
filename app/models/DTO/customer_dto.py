@@ -1,8 +1,10 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, TYPE_CHECKING
+from app.models.DTO.loyalty_card_dto import LoyaltyCardUpdateDTO
 
 if TYPE_CHECKING:
     from app.models.DTO.loyalty_card_dto import LoyaltyCardResponseDTO
+    
 
 
 class CustomerCreateDTO(BaseModel):
@@ -10,7 +12,7 @@ class CustomerCreateDTO(BaseModel):
 
 class CustomerUpdateDTO(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    card: Optional[dict] = None
+    card: Optional[LoyaltyCardUpdateDTO] = None
 
 class CustomerResponseDTO(BaseModel):
     id: int

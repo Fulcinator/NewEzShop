@@ -20,7 +20,10 @@ class InventoryRepository:
             raise BadRequestError("Quantity cannot be negative")
 
         async with await self._get_session() as session:
-            pt = await session.get(ProductTypeDAO, product_type_id)
+            # Eagerly load position to avoid detached instance errors
+            stmt = select(ProductTypeDAO).where(ProductTypeDAO.id == product_type_id).options(selectinload(ProductTypeDAO.position))
+            result = await session.execute(stmt)
+            pt = result.scalar_one_or_none()
             if not pt:
                 raise NotFoundError(f"Product type with id '{product_type_id}' not found")
 
