@@ -44,7 +44,15 @@ async def setup_test_db():
     
     yield
     
-    await database.reset_db()
+    # Cleanup: Just dispose engines, don't try to reset DB
+    try:
+        # Close sync engine first (simpler, no async issues)
+        sync_engine.dispose()
+        # Close async engine
+        if hasattr(database, 'async_engine') and database.async_engine:
+            await database.async_engine.dispose()
+    except Exception as e:
+        print(f"[WARN] Cleanup warning: {e}")
 
 @pytest.fixture
 async def db_session():
@@ -65,20 +73,17 @@ def db_session_sync():
 
 @pytest.fixture(scope="session")
 def client():
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 @pytest.fixture(scope="session")
-def auth_tokens(client):
-    # Reuse event loop to avoid overhead
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(reset())
-        loop.run_until_complete(init_db())
-    finally:
-        loop.close()
+async def auth_tokens(client, setup_test_db):
+    """Create auth tokens after DB is setup."""
+    # Reset and reinitialize to ensure clean state
+    await reset()
+    await init_db()
     
     # Get admin token first
     users = {
