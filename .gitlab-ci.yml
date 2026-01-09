@@ -6,7 +6,14 @@ test-all:
   image: python:3.13
   tags:
     - geocontrol
+  timeout: 10m
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .cache/pip
+      - .pytest_cache/
   before_script:
+    - export PIP_CACHE_DIR=".cache/pip"
     - pip install --upgrade pip
     - pip install -r requirements.txt
   script:

@@ -18,9 +18,15 @@ from pathlib import Path
 
 sync_url = DATABASE_URL.replace("+aiosqlite", "")
 
+# Performance optimization for SQLite in tests
 sync_engine = create_engine(
     sync_url, 
-    connect_args={"check_same_thread": False} if "sqlite" in sync_url else {}
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 30,  
+    } if "sqlite" in sync_url else {},
+    pool_pre_ping=True,  
+    pool_recycle=3600,
 )
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 
@@ -65,9 +71,14 @@ BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 @pytest.fixture(scope="session")
 def auth_tokens(client):
+    # Reuse event loop to avoid overhead
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(reset())
-    loop.run_until_complete(init_db())
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(reset())
+        loop.run_until_complete(init_db())
+    finally:
+        loop.close()
     
     # Get admin token first
     users = {
