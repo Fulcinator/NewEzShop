@@ -54,15 +54,6 @@ async def setup_test_db():
         sync_engine.dispose()
     except Exception as e:
         print(f"[WARN] Cleanup warning: {e}")
-    finally:
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                pending = asyncio.all_tasks(loop)
-                for task in pending:
-                    task.cancel()
-        except:
-            pass
 
 @pytest.fixture
 async def db_session():
@@ -89,8 +80,9 @@ def client():
 BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 @pytest.fixture(scope="session")
-async def auth_tokens(client):
-    
+async def auth_tokens(client, setup_test_db):
+    """Create auth tokens after DB is setup."""
+    # Reset and reinitialize to ensure clean state
     await reset()
     await init_db()
     
