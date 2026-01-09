@@ -44,14 +44,13 @@ async def setup_test_db():
     
     yield
     
-    # Cleanup: close all connections and reset
+    # Cleanup: Just dispose engines, don't try to reset DB
     try:
-        await database.reset_db()
-        # Explicitly close the async engine
+        # Close sync engine first (simpler, no async issues)
+        sync_engine.dispose()
+        # Close async engine
         if hasattr(database, 'async_engine') and database.async_engine:
             await database.async_engine.dispose()
-        # Close sync engine
-        sync_engine.dispose()
     except Exception as e:
         print(f"[WARN] Cleanup warning: {e}")
 
