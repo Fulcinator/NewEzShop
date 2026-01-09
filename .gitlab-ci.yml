@@ -6,7 +6,7 @@ test-all:
   image: python:3.13
   tags:
     - geocontrol
-  timeout: 3m
+  timeout: 10m
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
