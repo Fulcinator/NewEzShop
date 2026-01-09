@@ -7,9 +7,17 @@ DATA_DIR.mkdir(exist_ok=True)
 
 # Detect testing mode
 IS_TEST = os.getenv("TESTING", "0") == "1"
+IS_CI = os.getenv("CI", "0") == "1"
+
 # Database
 if IS_TEST:
-    DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+    if IS_CI:
+        # Use in-memory database in CI to avoid file locking issues
+        DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+    else:
+        # Use a file-based test database locally for debugging
+        TEST_DB_PATH = DATA_DIR / "test_database.sqlite"
+        DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
 else:
     DB_FILE_PATH = DATA_DIR / "database.sqlite"
     DATABASE_URL = f"sqlite+aiosqlite:///{DB_FILE_PATH}"

@@ -50,15 +50,19 @@ class SaleRepository:
 
 
     async def delete_sale(self, sale_id: int):
-        sale = await self.get_sale_by_id(sale_id)
+        result = await self.db.execute(
+            select(SaleTransactionDAO)
+            .where(SaleTransactionDAO.id == sale_id)
+            .options(selectinload(SaleTransactionDAO.lines))
+        )
+        sale = result.scalar_one_or_none()
+
         if not sale:
             raise NotFoundError("Sale not found")
 
-        # verify status
         if sale.status == "PAID":
             raise BadRequestError("Cannot delete a paid sale")
 
-        # reintegrate stock
         for line in sale.lines:
             result = await self.db.execute(
                 select(ProductTypeDAO).where(ProductTypeDAO.id == line.product_type_id)
@@ -66,11 +70,10 @@ class SaleRepository:
             product = result.scalar_one()
             product.quantity += line.quantity
 
-        # delete sale (cascade delete also the lines)
         await self.db.delete(sale)
         await self.db.commit()
-
         return True
+
 
     async def add_product_to_sale(self, sale_id: int, barcode: str, amount: int):
         # 1. Sale exists?
@@ -117,7 +120,7 @@ class SaleRepository:
                 unit_price=product.price_per_unit,
                 discount_rate=0.0
             )
-            self.db.add(line)
+            sale.lines.append(line)
 
         # 9. Deduction stock
         product.quantity -= amount

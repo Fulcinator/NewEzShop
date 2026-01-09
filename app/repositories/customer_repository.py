@@ -95,16 +95,18 @@ class CustomerRepository:
             # handle loyalty card update/attach/detach
 
             # if card is not provided, do nothing
-            if "card" not in update_data or update_data["card"] is None:
+            if "card" not in update_data:
                 await session.commit()
                 return await self._reload_customer(session, customer_id)
 
             card_payload = update_data["card"]
 
             # if card_payload is an empty dict, detach/delete the loyalty card
-            if isinstance(card_payload, dict) and not card_payload:
+            if card_payload is None or card_payload == {}:
                 if customer.loyalty_card:
                     await session.delete(customer.loyalty_card)
+                    customer.loyalty_card = None   
+
                 await session.commit()
                 return await self._reload_customer(session, customer_id)
 
@@ -138,6 +140,7 @@ class CustomerRepository:
                     customer_id=customer_id
                 )
                 session.add(new_card)
+                customer.loyalty_card = new_card
 
             await session.commit()            
             return await self._reload_customer(session, customer_id)

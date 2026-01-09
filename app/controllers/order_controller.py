@@ -10,16 +10,30 @@ class OrderController:
         self.repo = OrderRepository()
 
     def _to_response_dto(self, order) -> OrderResponseDTO:
-        product_type = order.product_types[0] if order.product_types else None
-        product_barcode = product_type.barcode if product_type else None
+        from app.models.DTO.order_dto import OrderProductTypeDTO
+        
+        # Build product_types list
+        product_types = []
+        if order.product_types:
+            for pt in order.product_types:
+                product_types.append(OrderProductTypeDTO(
+                    product_type_id=pt.id,
+                    barcode=pt.barcode,
+                    description=pt.description,
+                    quantity=order.quantity,
+                ))
+        
+        # Convert issue_date to string
+        issue_date_str = order.issue_date.isoformat() if isinstance(order.issue_date, datetime) else str(order.issue_date)
 
         return OrderResponseDTO(
-            id=order.id,
-            product_barcode=product_barcode,
+            order_id=order.id,
+            supplier=order.supplier if hasattr(order, 'supplier') else None,
             quantity=order.quantity,
             price_per_unit=order.price_per_unit,
-            status=order.status,
-            issue_date=order.issue_date,
+            status=order.status.value if isinstance(order.status, OrderStatus) else order.status,
+            issue_date=issue_date_str,
+            product_types=product_types,
         )
 
     async def issue_reorder(self, dto: OrderCreateDTO) -> OrderResponseDTO:
