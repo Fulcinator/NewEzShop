@@ -74,7 +74,8 @@ def db_session_sync():
 
 @pytest.fixture(scope="session")
 def client():
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 BASE_URL = "http://127.0.0.1:8000/api/v1"
 
