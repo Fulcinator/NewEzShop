@@ -6,18 +6,24 @@ test-all:
   image: python:3.13
   tags:
     - geocontrol
-  timeout: 10m
+  timeout: 3m
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .cache/pip
       - .pytest_cache/
   before_script:
+    - echo "Installing dependencies..."
     - export PIP_CACHE_DIR=".cache/pip"
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
+    - export TESTING=1
+    - pip install --upgrade pip --quiet
+    - pip install -r requirements.txt --quiet
+    - echo "Dependencies installed successfully"
+    - rm -f app/data/test_database.sqlite* || true
   script:
-    - pytest tests/ --cov --cov-report=term
+    - echo "Starting tests..."
+    - pytest tests/ --cov --cov-report=term -v --tb=short --maxfail=5 -x
+    - echo "Tests completed successfully"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
