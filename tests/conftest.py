@@ -71,14 +71,9 @@ BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 @pytest.fixture(scope="session")
 def auth_tokens(client):
-    # Reuse event loop to avoid overhead
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(reset())
-        loop.run_until_complete(init_db())
-    finally:
-        loop.close()
+    
+    asyncio.run(reset())
+    asyncio.run(init_db())
     
     # Get admin token first
     users = {
