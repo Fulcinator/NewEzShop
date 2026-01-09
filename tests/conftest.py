@@ -54,6 +54,15 @@ async def setup_test_db():
         sync_engine.dispose()
     except Exception as e:
         print(f"[WARN] Cleanup warning: {e}")
+    finally:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+        except:
+            pass
 
 @pytest.fixture
 async def db_session():
