@@ -70,10 +70,10 @@ def client():
 BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 @pytest.fixture(scope="session")
-def auth_tokens(client):
+async def auth_tokens(client):
     
-    asyncio.run(reset())
-    asyncio.run(init_db())
+    await reset()
+    await init_db()
     
     # Get admin token first
     users = {
