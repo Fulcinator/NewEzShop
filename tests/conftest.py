@@ -44,7 +44,16 @@ async def setup_test_db():
     
     yield
     
-    await database.reset_db()
+    # Cleanup: close all connections and reset
+    try:
+        await database.reset_db()
+        # Explicitly close the async engine
+        if hasattr(database, 'async_engine') and database.async_engine:
+            await database.async_engine.dispose()
+        # Close sync engine
+        sync_engine.dispose()
+    except Exception as e:
+        print(f"[WARN] Cleanup warning: {e}")
 
 @pytest.fixture
 async def db_session():
