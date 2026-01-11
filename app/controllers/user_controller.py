@@ -1,6 +1,7 @@
 from typing import List, Optional
 from app.repositories.user_repository import UserRepository
 from app.models.DTO.user_dto import UserDTO
+from app.models.user_type import UserType
 from app.services.mapper_service import userdao_to_responsedto
 
 class UserController:
@@ -30,3 +31,11 @@ class UserController:
     async def delete_user(self, user_id: int) -> bool:
         """Delete user - throws NotFoundError if not found"""
         return await self.repo.delete_user(user_id)
+
+    async def search_users(self, username: Optional[str] = None, user_type: Optional[UserType] = None) -> List[UserDTO]:
+        """
+        Search users by optional username and/or type.
+        Returns an empty list if no matches.
+        """
+        daos = await self.repo.search_users(username=username, user_type=user_type)
+        return [userdao_to_responsedto(dao) for dao in daos]

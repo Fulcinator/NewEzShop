@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import event
 from app.config.config import DATABASE_URL
 import importlib
 import pkgutil
@@ -9,8 +10,22 @@ import app.models.DAO as dao_package
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # set to True if you want SQL logs
-    future=True
+    future=True,
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 30,
+    } if "sqlite" in DATABASE_URL else {}
 )
+
+# For SQLite, set pragmas to improve concurrency
+if "sqlite" in DATABASE_URL:
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA read_uncommitted=1")
+        cursor.close()
 
 # --- Create the async session maker ---
 AsyncSessionLocal = async_sessionmaker(
