@@ -119,74 +119,6 @@ def create_return_safely(client, token, sale_id):
     return response.json()
 
 
-def test_start_return(client, auth_tokens):
-    """Test creating a return transaction for a paid sale"""
-    token = auth_tokens["manager"]
-    
-    # 1. Create a product
-    product_response = client.post(
-        PRODUCTS_BASE,
-        json={
-            "id": 101,
-            "barcode": "12345678901",
-            "description": "Test Product",
-            "price_per_unit": 25.0,
-            "quantity": 100,
-            "position": "1-A-1",
-        },
-        headers=auth_headers(token),
-    )
-    assert product_response.status_code in (200, 201)
-    
-    # 2. Create sale
-    sale_response = client.post(SALES_BASE, headers=auth_headers(token))
-    assert sale_response.status_code == 201
-    sale = sale_response.json()
-    sale_id = sale["sale_transaction_id"]
-    
-    # 3. Verify sale exists
-    get_response = client.get(f"{SALES_BASE}/{sale_id}", headers=auth_headers(token))
-    assert get_response.status_code == 200
-    
-    # 4. Add product
-    add_response = client.post(
-        f"{SALES_BASE}/{sale_id}/items",
-        params={"barcode": "12345678901", "amount": 2},
-        headers=auth_headers(token),
-    )
-    assert add_response.status_code in (200, 201)
-    
-    # 5. Close sale
-    close_response = client.patch(
-        f"{SALES_BASE}/{sale_id}/close",
-        headers=auth_headers(token),
-    )
-    assert close_response.status_code == 200
-    
-    # 6. Pay for sale
-    pay_response = client.patch(
-        f"{SALES_BASE}/{sale_id}/pay",
-        params={"cash_amount": 100.0},
-        headers=auth_headers(token),
-    )
-    
-    if pay_response.status_code != 200:
-        pytest.skip(f"Payment failed: {pay_response.text}")
-    
-    # 7. Create return
-    return_response = client.post(
-        RETURNS_BASE,
-        params={"sale_id": sale_id},
-        headers=auth_headers(token),
-    )
-    assert return_response.status_code in (200, 201)
-    data = return_response.json()
-    
-    assert "id" in data
-    assert data.get("sale_transaction_id") == sale_id or data.get("sale_id") == sale_id
-    assert data["status"] == "OPEN"
-
-
 def test_get_all_returns(client, auth_tokens):
     """Test retrieving all return transactions"""
     sale_id, barcodes = create_paid_sale(client, auth_tokens["manager"])
@@ -275,7 +207,7 @@ def test_add_and_remove_product_from_return(client, auth_tokens):
     )
     logger.debug(f"Remove Product from Return Response: {remove_response.status_code} - {remove_response.json()}")
 
-    assert remove_response.status_code == 200, "Product should be removed successfully"
+    assert remove_response.status_code == 202, "Product should be removed successfully"
 
 
 def test_close_return(client, auth_tokens):

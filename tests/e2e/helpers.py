@@ -8,9 +8,9 @@ import string
 
 
 def generate_barcode(prefix="E2E"):
-    """Generate a unique barcode for e2e tests."""
-    suffix = ''.join(random.choices(string.digits, k=8))
-    return f"{prefix}-{suffix}"
+    """Generate a unique 12-digit numeric barcode for e2e tests."""
+    # Generate a 12-digit numeric barcode (valid UPC-A format)
+    return ''.join(random.choices(string.digits, k=12))
 
 
 def generate_customer_name():
@@ -29,15 +29,15 @@ def create_product_helper(client, token, name, price, quantity=100):
     """Create a complete product with random barcode and position."""
     barcode = generate_barcode()
     product_id = random.randint(10000, 99999)
-    position = f"{random.randint(1, 10)}-{random.choice('ABCD')}-{random.randint(1, 20)}"
+    # Use much larger ranges to avoid position conflicts
+    position = f"{random.randint(1, 100)}-{random.choice('ABCDEFGHIJ')}-{random.randint(1, 1000)}"
     
     response = client.post(
         "http://127.0.0.1:8000/api/v1/products",  # Changed from /product-types
         json={
             "id": product_id,
             "barcode": barcode,
-            "name": name,
-            "description": f"E2E test product: {name}",
+            "description": name,  # Use name as description
             "price_per_unit": price,
             "quantity": quantity,
             "position": position,
@@ -98,7 +98,7 @@ def attach_loyalty_card_helper(client, token, customer_id, card_number=None):
         headers={"Authorization": token}
     )
     
-    if attach_response.status_code != 200:
+    if attach_response.status_code not in (200, 201):
         raise Exception(f"Failed to attach loyalty card: {attach_response.text}")
     
     # Normalize card response

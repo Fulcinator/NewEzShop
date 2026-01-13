@@ -46,7 +46,7 @@ def test_complete_inventory_lifecycle(client, auth_tokens):
     )
     assert create_order_response.status_code == 201
     order = create_order_response.json()
-    order_id = order["order_id"]
+    order_id = order["id"]
     
     # Verify order is in ISSUED state
     assert order["status"] == "ISSUED"
@@ -57,7 +57,7 @@ def test_complete_inventory_lifecycle(client, auth_tokens):
         f"http://127.0.0.1:8000/api/v1/orders/{order_id}/pay",
         headers={"Authorization": admin_token}
     )
-    assert pay_order_response.status_code == 200
+    assert pay_order_response.status_code == 201
     
     # Step 5: Verify balance decreased
     balance_after_payment = client.get(
@@ -72,7 +72,7 @@ def test_complete_inventory_lifecycle(client, auth_tokens):
         f"http://127.0.0.1:8000/api/v1/orders/{order_id}/arrival",
         headers={"Authorization": manager_token}
     )
-    assert arrival_response.status_code == 200
+    assert arrival_response.status_code == 201
     
     # Step 8: Verify inventory increased
     product_check = client.get(
@@ -233,7 +233,7 @@ def test_product_lifecycle_management(client, auth_tokens):
         },
         headers={"Authorization": admin_token}
     )
-    assert update_response.status_code == 200
+    assert update_response.status_code == 201
     
     # Verify update  
     check = client.get(

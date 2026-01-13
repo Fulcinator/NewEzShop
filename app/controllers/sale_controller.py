@@ -33,10 +33,7 @@ class SaleController:
         return None
 
     async def delete_sale(self, sale_id: int) -> bool:
-        sale = await self.repo.get_sale_by_id(sale_id)
-        if sale and sale.status != "PAID":
-            return await self.repo.delete_sale(sale_id)
-        return False
+        return await self.repo.delete_sale(sale_id)
 
     async def add_product_to_sale(self, sale_id: int, barcode: str, amount: int):
         return await self.repo.add_product_to_sale(sale_id, barcode, amount)

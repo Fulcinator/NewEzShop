@@ -146,7 +146,7 @@ def test_update_customer_name(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["id"] == customer_id
     assert data["name"] == new_name
@@ -244,7 +244,7 @@ def test_attach_loyalty_card_to_customer(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["id"] == customer_id
     # Card can be under 'card' or 'loyalty_card' key
@@ -292,7 +292,7 @@ def test_modify_card_points(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["card_id"] == card_id.zfill(10)
     assert data["points"] == 150  # 100 + 50
@@ -311,7 +311,7 @@ def test_modify_card_points_negative(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["points"] == 70  # 100 - 30
 
@@ -343,7 +343,7 @@ def test_full_customer_workflow(client, auth_tokens):
         f"{CUSTOMERS_BASE}/{customer_id}/attach-card/{card_id}",
         headers=auth_headers(auth_tokens["cashier"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     # 4. Add points to card
     response = client.patch(
@@ -351,7 +351,7 @@ def test_full_customer_workflow(client, auth_tokens):
         params={"points": 100},
         headers=auth_headers(auth_tokens["cashier"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 100
     
     # 5. Update customer name
@@ -361,7 +361,7 @@ def test_full_customer_workflow(client, auth_tokens):
         json={"name": new_name},
         headers=auth_headers(auth_tokens["cashier"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["name"] == new_name
     card_data = data.get("card") or data.get("loyalty_card")
@@ -378,3 +378,4 @@ def test_full_customer_workflow(client, auth_tokens):
     card_data = data.get("card") or data.get("loyalty_card")
     assert card_data["card_id"] == card_id.zfill(10)
     assert card_data["points"] == 100
+

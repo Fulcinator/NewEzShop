@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import List, Optional
 from app.config.config import ROUTES
 from app.controllers.order_controller import OrderController
@@ -39,22 +39,26 @@ async def pay_for_order(body: OrderCreateDTO):
     """
     return await controller.pay_for_order(body)
 
-@router.patch("/{order_id}/pay")
+@router.patch("/{order_id}/pay", status_code=status.HTTP_201_CREATED)
 async def pay_order(order_id: int):
     """
     Pays an existing ISSUED order.
     The order becomes PAYED and the balance is updated.
     """
+    if order_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid order ID")
     return await controller.pay_order(order_id)
 
-@router.patch("/{order_id}/arrival")
+@router.patch("/{order_id}/arrival", status_code=status.HTTP_201_CREATED)
 async def record_arrival(order_id: int):
     """
     Marks a PAYED order as COMPLETED and updates product quantities.
     """
+    if order_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid order ID")
     return await controller.record_arrival(order_id)
 
-@router.get("/", response_model=List[OrderResponseDTO])
+@router.get("", response_model=List[OrderResponseDTO])
 async def list_orders(order_status: Optional[OrderStatus] = None):
     """
     List all orders (issued, payed, completed)

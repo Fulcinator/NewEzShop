@@ -109,9 +109,9 @@ async def test_add_points_success(repo, session):
 async def test_add_points_cannot_go_negative(repo, session):
     card = await seed_card(session, card_id="0000002222", points=5)
 
-    updated = await repo.add_points(card.card_id, -100)
-
-    assert updated.points == 0
+    from app.models.errors.general_error import GeneralError
+    with pytest.raises(GeneralError):
+        await repo.add_points(card.card_id, -100)
 
 
 @pytest.mark.asyncio

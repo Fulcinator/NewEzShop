@@ -3,6 +3,7 @@ from app.models.DTO.loyalty_card_dto import (
     LoyaltyCardCreateDTO,
     LoyaltyCardResponseDTO
 )
+from typing import Optional
 
 
 class LoyaltyCardController:
@@ -10,7 +11,7 @@ class LoyaltyCardController:
         """Initialize the controller with Repository instance"""
         self.repo = LoyaltyCardRepository()
 
-    async def create_loyalty_card(self, card_dto: LoyaltyCardCreateDTO) -> LoyaltyCardResponseDTO:
+    async def create_loyalty_card(self, card_dto: Optional[LoyaltyCardCreateDTO]) -> LoyaltyCardResponseDTO:
         created_dao = await self.repo.create_loyalty_card(card_dto)
         return LoyaltyCardResponseDTO.model_validate(created_dao)
 

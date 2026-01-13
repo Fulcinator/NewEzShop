@@ -60,8 +60,8 @@ class SaleRepository:
         if not sale:
             raise NotFoundError("Sale not found")
 
-        if sale.status == "PAID":
-            raise BadRequestError("Cannot delete a paid sale")
+        if sale.status in ["PAID", "PENDING"]:
+            raise InvalidStateError("Cannot delete a closed or paid sale")
 
         for line in sale.lines:
             result = await self.db.execute(
@@ -159,13 +159,17 @@ class SaleRepository:
         if not line:
             raise NotFoundError("Product not found in sale")
 
-        # 6. Removal or reduction
-        if amount >= line.quantity:
-            # reintegrate all
+        # 6. Check if trying to remove more than available
+        if amount > line.quantity:
+            raise BadRequestError(f"Cannot remove {amount} items; only {line.quantity} in sale")
+        
+        # 7. Removal or reduction
+        if amount == line.quantity:
+            # reintegrate all and remove line
             product.quantity += line.quantity
             await self.db.delete(line)
         else:
-            # reintegrate only amount
+            # reintegrate only amount and update line
             product.quantity += amount
             line.quantity -= amount
 

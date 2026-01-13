@@ -38,12 +38,23 @@ async def clean_db():
 
 
 async def seed_product(session, *, barcode: str, quantity: int = 10):
+    # First create the position
+    from app.models.DAO.position_dao import PositionDAO
+    position = PositionDAO(
+        aisleID=1,
+        rackID="A",
+        levelID=1
+    )
+    session.add(position)
+    await session.flush()  # Ensure position ID is available
+    
+    # Then create the product with position_id
     product = ProductTypeDAO(
         barcode=barcode,
         price_per_unit=10.0,
         quantity=quantity,
-        shop_id=1,     
-        position=None     
+        shop_id=1,
+        position_id=position.id
     )
     session.add(product)
     await session.commit()
@@ -74,7 +85,7 @@ async def seed_balance(session, amount: float):
 
 @pytest.mark.asyncio
 async def test_issue_reorder_warning(repo, session):
-    product = await seed_product(session, barcode="P-TEST1")
+    product = await seed_product(session, barcode="123456789001")
 
     order = await repo.issue_reorder_warning(
         product_barcode=product.barcode,
@@ -84,7 +95,7 @@ async def test_issue_reorder_warning(repo, session):
 
     assert order.status == OrderStatus.ISSUED
     assert order.quantity == 5
-    assert order.product_types[0].barcode == "P-TEST1"
+    assert order.product_types[0].barcode == "123456789001"
 
 
 @pytest.mark.asyncio
@@ -99,7 +110,7 @@ async def test_issue_reorder_warning_product_not_found(repo):
 
 @pytest.mark.asyncio
 async def test_create_and_pay_order_success(repo, session):
-    product = await seed_product(session, barcode="P-PAY")
+    product = await seed_product(session, barcode="123456789002")
     await seed_balance(session, amount=10_000)
 
     order = await repo.create_and_pay_order(
@@ -109,12 +120,12 @@ async def test_create_and_pay_order_success(repo, session):
     )
 
     assert order.status == OrderStatus.PAYED
-    assert order.product_types[0].barcode == "P-PAY"
+    assert order.product_types[0].barcode == "123456789002"
 
 
 @pytest.mark.asyncio
 async def test_create_and_pay_order_insufficient_balance(repo, session):
-    product = await seed_product(session, barcode="P-NOBAL")
+    product = await seed_product(session, barcode="123456789003")
 
     with pytest.raises(BalanceError):
         await repo.create_and_pay_order(
@@ -126,7 +137,7 @@ async def test_create_and_pay_order_insufficient_balance(repo, session):
 
 @pytest.mark.asyncio
 async def test_pay_issued_and_update_balance_success(repo, session):
-    product = await seed_product(session, barcode="P-PAY2")
+    product = await seed_product(session, barcode="123456789004")
     await seed_balance(session, amount=10_000)
 
     order = await repo.issue_reorder_warning(
@@ -143,7 +154,7 @@ async def test_pay_issued_and_update_balance_success(repo, session):
 
 @pytest.mark.asyncio
 async def test_pay_issued_invalid_state(repo, session):
-    product = await seed_product(session, barcode="P-BADSTATE")
+    product = await seed_product(session, barcode="123456789005")
     await seed_balance(session, amount=10_000)
 
     order = await repo.create_and_pay_order(
@@ -158,7 +169,7 @@ async def test_pay_issued_invalid_state(repo, session):
 
 @pytest.mark.asyncio
 async def test_record_arrival_and_update_quantity(repo, session):
-    product = await seed_product(session, barcode="P-ARR", quantity=10)
+    product = await seed_product(session, barcode="123456789006", quantity=10)
     await seed_balance(session, amount=10_000)
 
     order = await repo.create_and_pay_order(
@@ -178,7 +189,7 @@ async def test_record_arrival_and_update_quantity(repo, session):
 
 @pytest.mark.asyncio
 async def test_list_orders(repo, session):
-    product = await seed_product(session, barcode="P-LIST")
+    product = await seed_product(session, barcode="123456789007")
     await seed_balance(session, amount=10_000)
 
     await repo.issue_reorder_warning(
@@ -202,7 +213,7 @@ async def test_issue_reorder_warning_invalid_price(repo):
 
 @pytest.mark.asyncio
 async def test_create_and_pay_order_invalid_quantity(repo, session):
-    product = await seed_product(session, barcode="P-QTY")
+    product = await seed_product(session, barcode="123456789008")
     await seed_balance(session, 10_000)
 
     with pytest.raises(BadRequestError):
@@ -210,7 +221,7 @@ async def test_create_and_pay_order_invalid_quantity(repo, session):
 
 @pytest.mark.asyncio
 async def test_create_and_pay_order_invalid_price(repo, session):
-    product = await seed_product(session, barcode="P-PRICE")
+    product = await seed_product(session, barcode="123456789009")
     await seed_balance(session, 10_000)
 
     with pytest.raises(BadRequestError):
@@ -229,7 +240,7 @@ async def test_record_arrival_order_not_found(repo):
 
 @pytest.mark.asyncio
 async def test_list_orders_with_status_filter(repo, session):
-    product = await seed_product(session, barcode="P-FILTER")
+    product = await seed_product(session, barcode="123456789010")
     await seed_balance(session, amount=10_000)
 
     issued = await repo.issue_reorder_warning(
@@ -270,7 +281,7 @@ async def test_issue_reorder_warning_product_barcode_not_found(repo):
 
 @pytest.mark.asyncio
 async def test_pay_issued_order_without_product_type(repo, session):
-    product = await seed_product(session, barcode="P-NOPOS")
+    product = await seed_product(session, barcode="123456789011")
     await seed_balance(session, amount=10_000)
 
     order = await repo.issue_reorder_warning(
@@ -292,7 +303,7 @@ async def test_pay_issued_order_without_product_type(repo, session):
 
 @pytest.mark.asyncio
 async def test_record_arrival_without_product_type(repo, session):
-    product = await seed_product(session, barcode="P-NOPOS2")
+    product = await seed_product(session, barcode="123456789012")
     await seed_balance(session, amount=10_000)
 
     order = await repo.create_and_pay_order(
@@ -314,7 +325,7 @@ async def test_record_arrival_without_product_type(repo, session):
 
 @pytest.mark.asyncio
 async def test_pay_issued_order_insufficient_balance(repo, session):
-    product = await seed_product(session, barcode="P-NOBAL")
+    product = await seed_product(session, barcode="123456789013")
 
     order = await repo.issue_reorder_warning(
         product_barcode=product.barcode,
@@ -329,7 +340,7 @@ async def test_pay_issued_order_insufficient_balance(repo, session):
 
 @pytest.mark.asyncio
 async def test_pay_issued_order_invalid_state_completed(repo, session):
-    product = await seed_product(session, barcode="P-DONE")
+    product = await seed_product(session, barcode="123456789014")
     await seed_balance(session, amount=10_000)
 
     order = await repo.create_and_pay_order(

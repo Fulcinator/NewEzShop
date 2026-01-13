@@ -50,15 +50,22 @@ async def search_product_types(
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
 async def get_product_type(product_type_id: int):
+    if product_type_id < 0:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid product ID")
     return await controller.get_by_id(product_type_id)
 
 # FR3.1 update
 @router.put(
     "/{product_type_id}",
     response_model=ProductTypeResponseDTO,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def update_product_type(product_type_id: int, dto: ProductTypeUpdateDTO):
+    if product_type_id < 0:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid product ID")
     return await controller.update(product_type_id, dto)
 
 # FR3.2 delete
@@ -68,6 +75,9 @@ async def update_product_type(product_type_id: int, dto: ProductTypeUpdateDTO):
     dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def delete_product_type(product_type_id: int):
+    if product_type_id < 0:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid product ID")
     await controller.delete(product_type_id)
     return {}
 
@@ -84,9 +94,12 @@ async def list_product_types():
 @router.get(
     "/barcode/{barcode}",
     response_model=ProductTypeResponseDTO,
-    dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
+    dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
 async def get_product_type_by_barcode(barcode: str):
+    from fastapi import HTTPException
+    if len(barcode) < 12 or len(barcode) > 14 or not barcode.isdigit():
+        raise HTTPException(status_code=400, detail="Invalid barcode format")
     return await controller.get_by_barcode(barcode)
 
 
@@ -97,7 +110,25 @@ async def get_product_type_by_barcode(barcode: str):
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
-async def patch_product_type_position(product_type_id: int, dto: ProductTypePositionPatchDTO):
+async def patch_product_type_position(product_type_id: int, position: Optional[str] = Query(None)):
+    from fastapi import HTTPException
+    from app.models.DTO.product_type_dto import ProductTypePositionPatchDTO
+    if product_type_id <= 0:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    # Validate position format if provided
+    if position and position.strip():
+        parts = position.split('-')
+        if len(parts) != 3:
+            raise HTTPException(status_code=400, detail="Invalid position format")
+        try:
+            aisleID = int(parts[0])
+            rackID = parts[1]
+            levelID = int(parts[2])
+            if aisleID <= 0 or levelID <= 0 or not rackID.isalpha():
+                raise HTTPException(status_code=400, detail="Invalid position format")
+        except (ValueError, IndexError):
+            raise HTTPException(status_code=400, detail="Invalid position format")
+    dto = ProductTypePositionPatchDTO(position=position if position else None)
     return await controller.patch_position(product_type_id, dto)
 
 
@@ -107,5 +138,10 @@ async def patch_product_type_position(product_type_id: int, dto: ProductTypePosi
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user(ADMIN_AND_MANAGER))]
 )
-async def patch_product_type_quantity(product_type_id: int, dto: ProductTypeQuantityPatchDTO):
+async def patch_product_type_quantity(product_type_id: int, quantity: int = Query(..., ge=0)):
+    from fastapi import HTTPException
+    from app.models.DTO.product_type_dto import ProductTypeQuantityPatchDTO
+    if product_type_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    dto = ProductTypeQuantityPatchDTO(quantity=quantity)
     return await controller.patch_quantity(product_type_id, dto)

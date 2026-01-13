@@ -39,7 +39,7 @@ def test_customer_loyalty_journey(client, auth_tokens):
         f"http://127.0.0.1:8000/api/v1/customers/{customer1_id}",
         headers={"Authorization": manager_token}
     )
-    assert customer_check.json()["loyalty_card"]["card_id"] == card_number
+    assert customer_check.json()["card"]["card_id"] == card_number
     
     # Step 4: Create products and make purchase
     product1 = create_product_helper(client, admin_token, "Office Chair", 299.99, quantity=20)
@@ -72,7 +72,7 @@ def test_customer_loyalty_journey(client, auth_tokens):
         f"http://127.0.0.1:8000/api/v1/customers/{customer2_id}",
         headers={"Authorization": manager_token}
     )
-    assert customer2_check.json()["loyalty_card"]["card_id"] == card2["card_number"]
+    assert customer2_check.json()["card"]["card_id"] == card2["card_number"]
     
     # Step 9: Delete first customer (still has card - this should work)
     delete_response = client.delete(
@@ -174,7 +174,7 @@ def test_update_customer_information(client, auth_tokens):
         json={"name": "Kevin M. Malone"},
         headers={"Authorization": manager_token}
     )
-    assert update_response.status_code == 200
+    assert update_response.status_code == 201
     
     # Verify card is still attached after update
     check_response = client.get(
@@ -183,7 +183,7 @@ def test_update_customer_information(client, auth_tokens):
     )
     updated_customer = check_response.json()
     assert updated_customer["name"] == "Kevin M. Malone"
-    assert updated_customer["loyalty_card"]["card_id"] == card_number
+    assert updated_customer["card"]["card_id"] == card_number
 
 
 def test_loyalty_card_cannot_be_attached_to_multiple_customers(client, auth_tokens):
@@ -209,6 +209,5 @@ def test_loyalty_card_cannot_be_attached_to_multiple_customers(client, auth_toke
         headers={"Authorization": manager_token}
     )
     
-    # The card can be reassigned - it will move from customer1 to customer2
-    # This is the actual behavior, so we should expect success
-    assert conflict_response.status_code == 200
+    # The card cannot be attached to multiple customers - should get conflict
+    assert conflict_response.status_code == 409
