@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, HTTPException
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,8 @@ async def start_return(
     sale_id: int = Query(...),
     db: AsyncSession = Depends(get_db)
 ):
+    if sale_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid sale ID")
     controller = ReturnController(db)
     return await controller.start_return(sale_id)
 
@@ -36,6 +38,8 @@ async def get_all_returns(db: AsyncSession = Depends(get_db)):
     response_model=ReturnTransactionDTO,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))])
 async def get_return(return_id: int, db: AsyncSession = Depends(get_db)):
+    if return_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid return ID")
     controller = ReturnController(db)
     return await controller.get_return(return_id)
 
@@ -49,12 +53,13 @@ async def get_returns_by_sale(sale_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/{return_id}",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))])
 async def delete_return(return_id: int, db: AsyncSession = Depends(get_db)):
+    if return_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid return ID")
     controller = ReturnController(db)
     await controller.delete_return(return_id)
-    return {"success": True}
 
 
 @router.post("/{return_id}/items",
@@ -63,16 +68,18 @@ async def delete_return(return_id: int, db: AsyncSession = Depends(get_db)):
 async def add_product_to_return(
     return_id: int,
     barcode: str = Query(...),
-    amount: int = Query(...),
+    amount: int = Query(..., gt=0),
     db: AsyncSession = Depends(get_db)
 ):
+    if return_id < 0:
+        raise HTTPException(status_code=400, detail="Invalid return ID")
     controller = ReturnController(db)
     await controller.add_product_to_return(return_id, barcode, amount)
     return {"success": True}
 
 
 @router.delete("/{return_id}/items",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))])
 async def remove_product_from_return(
     return_id: int,

@@ -206,7 +206,7 @@ class OrderRepository:
             stmt = (
                 select(OrderDAO)
                 .where(OrderDAO.id == order_id)
-                .options(selectinload(OrderDAO.product_types))
+                .options(selectinload(OrderDAO.product_types).selectinload(ProductTypeDAO.position))
             )
             result = await session.execute(stmt)
             order = result.scalar_one_or_none()
@@ -218,18 +218,22 @@ class OrderRepository:
             if order.status != OrderStatus.PAYED:
                 raise InvalidStateError("order is not paid")
 
-            # 3. Must have a product type associated
+            # 3. Must have a product type associated with position
             if not order.product_types:
-                raise GeneralError("Position must be set for an order before its arrival")
+                raise GeneralError("Product type must be associated with an order before its arrival")
             product_type = order.product_types[0]
+            
+            # 4. Product must have a position set
+            if not product_type.position_id or not product_type.position:
+                raise GeneralError("Position must be set for a product before order arrival")
 
-            # 4. Update product quantity
+            # 5. Update product quantity
             product_type.quantity += order.quantity
 
-            # 5. Update order status
+            # 6. Update order status
             order.status = OrderStatus.COMPLETED
 
-            # 6. Commit final
+            # 7. Commit final
             await session.commit()
             
     async def list_orders(self,status=None) -> List[OrderDAO]:

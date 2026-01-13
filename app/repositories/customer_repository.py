@@ -8,6 +8,7 @@ from app.models.DAO.loyaltyCard_dao import LoyaltyCardDAO
 from app.models.DTO.customer_dto import CustomerUpdateDTO
 from app.models.errors.notfound_error import NotFoundError
 from app.models.errors.conflict_error import ConflictError
+from app.models.errors.bad_request import BadRequestError
 
 
 class CustomerRepository:
@@ -29,11 +30,41 @@ class CustomerRepository:
             if existing:
                 raise ConflictError("Customer with same name already exists")
             
+            # Validate card if provided
+            card_to_attach = None
+            if hasattr(data, 'card') and data.card is not None:
+                card_data = data.card
+                # Extract card_id
+                if isinstance(card_data, dict):
+                    card_id = card_data.get("card_id")
+                else:
+                    card_id = getattr(card_data, "card_id", None)
+                
+                if card_id is not None:
+                    # Verify the card exists
+                    card_id = str(card_id).zfill(10)
+                    card_result = await session.execute(
+                        select(LoyaltyCardDAO).where(LoyaltyCardDAO.card_id == card_id)
+                    )
+                    card_to_attach = card_result.scalars().first()
+                    if not card_to_attach:
+                        raise NotFoundError(f"Loyalty card with id {card_id} not found")
+                    
+                    # Check if card is already attached to another customer
+                    if card_to_attach.customer_id is not None:
+                        raise ConflictError(f"Loyalty card {card_id} is already attached to another customer")
+            
             dao = CustomerDAO(
                 name=data.name
             )
             
             session.add(dao)
+            await session.flush()  # Flush to get the ID
+            
+            # Attach card if validated
+            if card_to_attach:
+                card_to_attach.customer_id = dao.id
+            
             await session.commit()
             result = await session.execute(
                 select(CustomerDAO)
@@ -89,7 +120,15 @@ class CustomerRepository:
 
             # update name if provided
             update_data = customer_dto.model_dump(exclude_unset=True)
-            if "name" in update_data and update_data["name"] is not None:
+            
+            # Check if payload is completely empty - should fail
+            if not update_data:
+                raise BadRequestError("Update payload cannot be empty")
+            
+            # If name is in update_data but is empty/None, it's invalid
+            if "name" in update_data:
+                if update_data["name"] is None or (isinstance(update_data["name"], str) and not update_data["name"].strip()):
+                    raise BadRequestError("Customer name cannot be empty")
                 customer.name = update_data["name"]
 
             # handle loyalty card update/attach/detach

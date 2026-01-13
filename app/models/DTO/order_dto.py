@@ -6,7 +6,7 @@ from app.models.order_status import OrderStatus
 class OrderCreateDTO(BaseModel):
     # id is optional and ignored if provided
     id: Optional[int] = Field(default=None, ge=1)
-    product_barcode: str = Field(min_length=1, max_length=14)
+    product_barcode: str = Field(min_length=12, max_length=14)
     quantity: int = Field(ge=1)
     price_per_unit: float = Field(gt=0)
 
@@ -17,10 +17,12 @@ class OrderProductTypeDTO(BaseModel):
     quantity: int
 
 class OrderResponseDTO(BaseModel):
-    order_id: int
+    order_id: int = Field(serialization_alias="id")
     supplier: str | None
     status: str
     quantity: int
     price_per_unit: float
     issue_date: str
     product_types: List[OrderProductTypeDTO]
+
+    model_config = ConfigDict(populate_by_name=True)
