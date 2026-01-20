@@ -24,11 +24,25 @@ async def init_db():
         await repo.create_user(admin_dto.username, admin_dto.password, admin_dto.type)
         await repo.create_user(manager_dto.username, manager_dto.password, manager_dto.type)
         await repo.create_user(cashier_dto.username, cashier_dto.password, cashier_dto.type)
-        print("✅ Admin user created successfully")
+        print("Admin user created successfully")
+    
+    # Initialize system info (for balance tracking)
+    from app.database.database import AsyncSessionLocal
+    from app.models.DAO.system_dao import SystemInfoDAO
+    from sqlalchemy import select
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(SystemInfoDAO))
+        sys_info = result.scalar_one_or_none()
+        if not sys_info:
+            sys_info = SystemInfoDAO(balance=0.0)
+            session.add(sys_info)
+            await session.commit()
+            print("System info initialized")
 
 async def reset():
     await reset_db()
-    print("✅ Database reset successfully")
+    print("Database reset successfully")
     
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()

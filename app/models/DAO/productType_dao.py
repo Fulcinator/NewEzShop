@@ -10,8 +10,8 @@ class ProductTypeDAO(Base):
     __tablename__ = "product_types"
 
     id = Column(Integer, name='product_type_id', primary_key=True, autoincrement=True)
-    barcode = Column(String(14), unique=True, nullable=False)
-    description = Column(String, nullable=True, unique=True) # description is the name of the product
+    barcode = Column(String(14), unique=False, nullable=False)
+    description = Column(String, nullable=True) # description is the name of the product (not unique)
     price_per_unit = Column(Float, nullable=False)
     quantity = Column(Integer, nullable=False)
     discountRate = Column(Float, nullable=True)

@@ -5,7 +5,7 @@ from app.models.DTO.sale_product_association_dto import SaleProductAssociationDT
 
 
 class SaleTransactionDTO(BaseModel):
-    id: int = Field(alias="sale_transaction_id", default=None)
+    id: int = Field(alias="sale_transaction_id", serialization_alias="id", default=None)
     status: str  # OPEN, PENDING, PAID
     cost: float
     payment_type: Optional[str] = None  # CASH, CREDIT_CARD
@@ -17,5 +17,5 @@ class SaleTransactionDTO(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
-        populate_by_name=True  # Allows mapping from DAO 'id' to DTO 'sale_transaction_id'
+        populate_by_name=True
     )

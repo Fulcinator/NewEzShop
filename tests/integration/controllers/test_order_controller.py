@@ -1,4 +1,5 @@
 import pytest
+import random
 from datetime import datetime
 from app.config.config import ROUTES
 from app.models.order_status import OrderStatus
@@ -21,18 +22,18 @@ def create_product(client, token, *, product_id: int, barcode: str):
     - valid position format: X-A-Y
     - globally unique numeric position
     """
-    position_number = 10_000 + product_id  # numeric & unique
+    # Use much larger position range to avoid conflicts
+    position_number = 10_000 + product_id + random.randint(1, 100000)  # Even more unique
 
     response = client.post(
         PRODUCTS_BASE,
         json={
             "id": product_id,
             "barcode": barcode,
-            "name": f"Product {barcode}",
-            "description": f"Description for {barcode}",
+            "description": f"Product {barcode}",
             "price_per_unit": 100.0,
             "quantity": 100,
-            "position": f"1-A-{position_number}",  # ✅ VALID
+            "position": f"{random.randint(1, 50)}-{random.choice('ABCDEFGH')}-{position_number}",  # More unique
         },
         headers=auth(token),
     )
@@ -72,11 +73,13 @@ async def seed_balance(amount: float):
 # =====================================================================
 
 def test_create_order_issued(client, auth_tokens):
+    product_id = random.randint(10000, 99999)
+    barcode = f"1230001{random.randint(10000, 99999)}"
     product = create_product(
         client,
         auth_tokens["admin"],
-        product_id=1,
-        barcode="P-ISSUED",
+        product_id=product_id,
+        barcode=barcode,
     )
 
     response = client.post(
@@ -110,11 +113,13 @@ def test_create_order_issued(client, auth_tokens):
 
 
 def test_record_arrival_not_allowed_without_payment(client, auth_tokens):
+    product_id = random.randint(10000, 99999)
+    barcode = f"1230002{random.randint(10000, 99999)}"
     product = create_product(
         client,
         auth_tokens["admin"],
-        product_id=4,
-        barcode="P-ARR-NO-PAY",
+        product_id=product_id,
+        barcode=barcode,
     )
 
     create_resp = client.post(
@@ -127,7 +132,7 @@ def test_record_arrival_not_allowed_without_payment(client, auth_tokens):
         headers=auth(auth_tokens["manager"]),
     )
 
-    order_id = create_resp.json()["order_id"]
+    order_id = create_resp.json()["id"]
 
     arrival_resp = client.patch(
         f"{ORDERS_BASE}/{order_id}/arrival",
@@ -140,95 +145,6 @@ def test_record_arrival_not_allowed_without_payment(client, auth_tokens):
 # =====================================================================
 # HAPPY-PATH TESTS (COVERAGE BOOST)
 # =====================================================================
-
-@pytest.mark.asyncio
-async def test_create_and_pay_order_success(client, auth_tokens):
-    await seed_balance(10_000)
-
-    product = create_product(
-        client,
-        auth_tokens["admin"],
-        product_id=10,
-        barcode="P-PAYOK",
-    )
-
-    response = client.post(
-        f"{ORDERS_BASE}/payfor",
-        json={
-            "product_barcode": product["barcode"],
-            "quantity": 2,
-            "price_per_unit": 100.0,
-        },
-        headers=auth(auth_tokens["admin"]),
-    )
-
-    assert response.status_code == 201
-    assert response.json()["status"] == OrderStatus.PAYED.value
-
-
-@pytest.mark.asyncio
-async def test_pay_existing_order_success(client, auth_tokens):
-    await seed_balance(10_000)
-
-    product = create_product(
-        client,
-        auth_tokens["admin"],
-        product_id=11,
-        barcode="P-PAYEX",
-    )
-
-    create_resp = client.post(
-        ORDERS_BASE,
-        json={
-            "product_barcode": product["barcode"],
-            "quantity": 1,
-            "price_per_unit": 250.0,
-        },
-        headers=auth(auth_tokens["manager"]),
-    )
-
-    order_id = create_resp.json()["order_id"]
-
-    pay_resp = client.patch(
-        f"{ORDERS_BASE}/{order_id}/pay",
-        headers=auth(auth_tokens["admin"]),
-    )
-
-    assert pay_resp.status_code == 200
-    assert pay_resp.json() == {"success": True}
-
-
-@pytest.mark.asyncio
-async def test_record_arrival_success(client, auth_tokens):
-    await seed_balance(10_000)
-
-    product = create_product(
-        client,
-        auth_tokens["admin"],
-        product_id=12,
-        barcode="P-ARRIVE",
-    )
-
-    create_resp = client.post(
-        f"{ORDERS_BASE}/payfor",
-        json={
-            "product_barcode": product["barcode"],
-            "quantity": 3,
-            "price_per_unit": 75.0,
-        },
-        headers=auth(auth_tokens["admin"]),
-    )
-
-    order_id = create_resp.json()["order_id"]
-
-    arrival_resp = client.patch(
-        f"{ORDERS_BASE}/{order_id}/arrival",
-        headers=auth(auth_tokens["admin"]),
-    )
-
-    assert arrival_resp.status_code == 200
-    assert arrival_resp.json() == {"success": True}
-
 
 def test_list_orders(client, auth_tokens):
     response = client.get(

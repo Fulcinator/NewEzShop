@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 class LoyaltyCardCreateDTO(BaseModel):
-    card_id: str = Field(min_length=10, max_length=10)
+    card_id: Optional[str] = Field(default=None, min_length=10, max_length=10)
     points: Optional[int] = Field(default=0, ge=0)
 
 class LoyaltyCardUpdateDTO(BaseModel):

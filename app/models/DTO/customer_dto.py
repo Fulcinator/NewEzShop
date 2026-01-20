@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 class CustomerCreateDTO(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    card: Optional[LoyaltyCardUpdateDTO] = None
 
 class CustomerUpdateDTO(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -19,15 +20,16 @@ class CustomerResponseDTO(BaseModel):
     name: str
     card: Optional["LoyaltyCardResponseDTO"] = Field(
         default=None,
-        alias="loyalty_card"
+        alias="loyalty_card",
+        serialization_alias="card"
     )
 
     model_config = ConfigDict(
-    from_attributes=True,
-    populate_by_name=True,
-    ser_json_tuples=False,
-    json_schema_extra=None
-)
+        from_attributes=True,
+        populate_by_name=True,
+        ser_json_tuples=False,
+        json_schema_extra=None
+    )
 
 from app.models.DTO.loyalty_card_dto import LoyaltyCardResponseDTO
 CustomerCreateDTO.model_rebuild()

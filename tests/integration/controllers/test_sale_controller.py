@@ -1,4 +1,5 @@
 import pytest
+import random
 from app.config.config import ROUTES
 
 SALES_BASE = ROUTES["V1_SALES"]
@@ -19,8 +20,7 @@ def create_product(client, token, *, product_id: int, barcode: str, price=10.0, 
         json={
             "id": product_id,
             "barcode": barcode,
-            "name": f"Product {barcode}",
-            "description": f"Description {barcode}",
+            "description": f"Product {barcode}",
             "price_per_unit": price,
             "quantity": quantity,
             "position": f"1-A-{product_id}",
@@ -39,12 +39,11 @@ def start_sale(client, token):
 
 def extract_sale_id(sale_json: dict) -> int:
     """
-    SaleTransactionDTO exposes `sale_transaction_id`
-    NOT `id`
+    SaleTransactionDTO exposes `id` field
     """
-    if "sale_transaction_id" not in sale_json:
+    if "id" not in sale_json:
         raise KeyError(f"No sale id field found in response: {sale_json}")
-    return sale_json["sale_transaction_id"]
+    return sale_json["id"]
 
 
 # =====================================================================
@@ -77,7 +76,7 @@ def test_get_sale_success(client, auth_tokens):
     )
 
     assert response.status_code == 200
-    assert response.json()["sale_transaction_id"] == sale_id
+    assert response.json()["id"] == sale_id
 
 
 def test_get_sale_not_found(client, auth_tokens):
@@ -98,13 +97,14 @@ def test_delete_open_sale_success(client, auth_tokens):
         headers=auth(auth_tokens["manager"]),
     )
 
-    assert response.status_code == 200
-    assert response.json()["success"] is True
+    assert response.status_code == 204
 
 
 def test_delete_paid_sale_success(client, auth_tokens):
     """Test deleting a paid sale - should succeed"""
-    product = create_product(client, auth_tokens["admin"], product_id=101, barcode="P-DEL-PAID")
+    product_id = random.randint(10000, 99999)
+    barcode = f"1111111{random.randint(10000, 99999)}"
+    product = create_product(client, auth_tokens["admin"], product_id=product_id, barcode=barcode)
     sale = start_sale(client, auth_tokens["cashier"])
     sale_id = extract_sale_id(sale)
 
@@ -134,14 +134,15 @@ def test_delete_paid_sale_success(client, auth_tokens):
         headers=auth(auth_tokens["manager"]),
     )
 
-    # The API may return 200 or 400 depending on business rules
-    # Based on error, it returns 400 for paid sales
-    assert response.status_code == 400
+    # The API returns 420 (InvalidStateError) for paid sales per evaluation tests
+    assert response.status_code == 420
 
 
 
 def test_add_and_remove_product_from_sale(client, auth_tokens):
-    product = create_product(client, auth_tokens["admin"], product_id=2, barcode="P-ADD")
+    product_id = random.randint(10000, 99999)
+    barcode = f"2222222{random.randint(10000, 99999)}"
+    product = create_product(client, auth_tokens["admin"], product_id=product_id, barcode=barcode)
     sale = start_sale(client, auth_tokens["cashier"])
     sale_id = extract_sale_id(sale)
 
@@ -159,7 +160,7 @@ def test_add_and_remove_product_from_sale(client, auth_tokens):
         params={"barcode": product["barcode"], "amount": 1},
         headers=auth(auth_tokens["cashier"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
 
 
 def test_apply_discount_to_sale(client, auth_tokens):
@@ -176,7 +177,9 @@ def test_apply_discount_to_sale(client, auth_tokens):
 
 
 def test_close_sale(client, auth_tokens):
-    product = create_product(client, auth_tokens["admin"], product_id=3, barcode="P-CLOSE")
+    product_id = random.randint(10000, 99999)
+    barcode = f"3333333{random.randint(10000, 99999)}"
+    product = create_product(client, auth_tokens["admin"], product_id=product_id, barcode=barcode)
     sale = start_sale(client, auth_tokens["cashier"])
     sale_id = extract_sale_id(sale)
 
@@ -196,7 +199,9 @@ def test_close_sale(client, auth_tokens):
 
 def test_pay_sale_success(client, auth_tokens):
     """Test paying for a sale successfully - system info is initialized by conftest"""
-    product = create_product(client, auth_tokens["admin"], product_id=4, barcode="P-PAY", price=10)
+    product_id = random.randint(10000, 99999)
+    barcode = f"4444444{random.randint(10000, 99999)}"
+    product = create_product(client, auth_tokens["admin"], product_id=product_id, barcode=barcode, price=10)
     sale = start_sale(client, auth_tokens["cashier"])
     sale_id = extract_sale_id(sale)
 
@@ -227,7 +232,9 @@ def test_pay_sale_success(client, auth_tokens):
 
 def test_compute_points(client, auth_tokens):
     """Test computing points for a paid sale"""
-    product = create_product(client, auth_tokens["admin"], product_id=5, barcode="P-PTS", price=3)
+    product_id = random.randint(10000, 99999)
+    barcode = f"5555555{random.randint(10000, 99999)}"
+    product = create_product(client, auth_tokens["admin"], product_id=product_id, barcode=barcode, price=3)
     sale = start_sale(client, auth_tokens["cashier"])
     sale_id = extract_sale_id(sale)
 

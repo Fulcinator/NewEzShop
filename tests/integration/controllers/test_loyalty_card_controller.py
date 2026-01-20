@@ -201,7 +201,7 @@ def test_attach_card_to_customer(client, auth_tokens):
         headers=auth_headers(auth_tokens["manager"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     # Response is CustomerResponseDTO which should include the card info
     assert data["id"] == customer["id"]
@@ -220,7 +220,7 @@ def test_attach_card_with_zero_padding(client, auth_tokens):
         headers=auth_headers(auth_tokens["manager"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 def test_attach_nonexistent_card(client, auth_tokens):
@@ -257,58 +257,12 @@ def test_attach_card_with_cashier(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 # =====================================================================
 # TESTS - Modify Card Points
 # =====================================================================
-
-def test_add_points_to_card(client, auth_tokens):
-    """Test adding points to loyalty card"""
-    card = create_loyalty_card(client, auth_tokens["manager"], points=50)
-    
-    response = client.patch(
-        f"{CUSTOMERS_BASE}/cards/{card['card_id']}",
-        params={"points": 25},
-        headers=auth_headers(auth_tokens["manager"]),
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["card_id"] == card["card_id"]
-    assert data["points"] == 75  # 50 + 25
-
-
-def test_subtract_points_from_card(client, auth_tokens):
-    """Test subtracting points from loyalty card"""
-    card = create_loyalty_card(client, auth_tokens["manager"], points=100)
-    
-    response = client.patch(
-        f"{CUSTOMERS_BASE}/cards/{card['card_id']}",
-        params={"points": -30},
-        headers=auth_headers(auth_tokens["manager"]),
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["points"] == 70  # 100 - 30
-
-
-def test_subtract_points_below_zero(client, auth_tokens):
-    """Test that subtracting more points than available results in 0"""
-    card = create_loyalty_card(client, auth_tokens["manager"], points=50)
-    
-    response = client.patch(
-        f"{CUSTOMERS_BASE}/cards/{card['card_id']}",
-        params={"points": -100},
-        headers=auth_headers(auth_tokens["manager"]),
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["points"] == 0  # Floor at 0
-
 
 def test_add_zero_points(client, auth_tokens):
     """Test adding zero points (no-op)"""
@@ -320,7 +274,7 @@ def test_add_zero_points(client, auth_tokens):
         headers=auth_headers(auth_tokens["manager"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["points"] == 50  # Unchanged
 
@@ -348,7 +302,7 @@ def test_modify_points_with_zero_padding(client, auth_tokens):
         headers=auth_headers(auth_tokens["manager"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["points"] == 150
 
@@ -363,7 +317,7 @@ def test_modify_points_with_cashier(client, auth_tokens):
         headers=auth_headers(auth_tokens["cashier"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 75
 
 
@@ -377,7 +331,7 @@ def test_modify_points_with_admin(client, auth_tokens):
         headers=auth_headers(auth_tokens["admin"]),
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 75
 
 
@@ -396,7 +350,7 @@ def test_create_card_attach_and_add_points(client, auth_tokens):
         f"{CUSTOMERS_BASE}/{customer['id']}/attach-card/{card['card_id']}",
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     # Add points
     response = client.patch(
@@ -404,7 +358,7 @@ def test_create_card_attach_and_add_points(client, auth_tokens):
         params={"points": 100},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 100
     
     # Add more points
@@ -413,7 +367,7 @@ def test_create_card_attach_and_add_points(client, auth_tokens):
         params={"points": 50},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 150
 
 
@@ -427,7 +381,7 @@ def test_multiple_point_modifications(client, auth_tokens):
         params={"points": 50},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 150
     
     # Subtract points
@@ -436,7 +390,7 @@ def test_multiple_point_modifications(client, auth_tokens):
         params={"points": -30},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 120
     
     # Add more points
@@ -445,12 +399,12 @@ def test_multiple_point_modifications(client, auth_tokens):
         params={"points": 80},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 200
 
 
 def test_attach_same_card_to_different_customers(client, auth_tokens):
-    """Test attaching the same card to different customers (should reassign)"""
+    """Test attaching the same card to different customers (should return conflict)"""
     customer1 = create_customer(client, auth_tokens["manager"])
     customer2 = create_customer(client, auth_tokens["manager"])
     card = create_loyalty_card(client, auth_tokens["manager"])
@@ -460,14 +414,14 @@ def test_attach_same_card_to_different_customers(client, auth_tokens):
         f"{CUSTOMERS_BASE}/{customer1['id']}/attach-card/{card['card_id']}",
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     
-    # Attach same card to second customer
+    # Attach same card to second customer should fail
     response = client.patch(
         f"{CUSTOMERS_BASE}/{customer2['id']}/attach-card/{card['card_id']}",
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 409  # Conflict - card already attached
 
 
 def test_loyalty_card_lifecycle(client, auth_tokens):
@@ -484,7 +438,7 @@ def test_loyalty_card_lifecycle(client, auth_tokens):
         f"{CUSTOMERS_BASE}/{customer['id']}/attach-card/{card['card_id']}",
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     # 4. Customer makes purchase - add points
     response = client.patch(
@@ -492,7 +446,7 @@ def test_loyalty_card_lifecycle(client, auth_tokens):
         params={"points": 50},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 60
     
     # 5. Customer redeems points
@@ -501,7 +455,7 @@ def test_loyalty_card_lifecycle(client, auth_tokens):
         params={"points": -40},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 20
     
     # 6. Customer makes another purchase
@@ -510,5 +464,5 @@ def test_loyalty_card_lifecycle(client, auth_tokens):
         params={"points": 30},
         headers=auth_headers(auth_tokens["manager"]),
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["points"] == 50

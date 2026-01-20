@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Response, Query
-from typing import List
+from typing import List, Optional
 from app.models.DTO.customer_dto import (
     CustomerCreateDTO,
     CustomerUpdateDTO,
@@ -16,6 +16,8 @@ from app.middleware.auth_middleware import authenticate_user
 from app.config.config import ROUTES
 from app.models.errors.notfound_error import NotFoundError
 from app.models.errors.conflict_error import ConflictError
+from app.models.errors.bad_request import BadRequestError
+from app.models.errors.general_error import GeneralError
 
 
 router = APIRouter(prefix=ROUTES['V1_CUSTOMERS'], tags=["customers"])
@@ -34,6 +36,10 @@ async def create_customer(customer: CustomerCreateDTO):
         return await customer_controller.create_customer(customer)
     except ConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except BadRequestError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get(
@@ -52,6 +58,8 @@ async def list_customers():
 )
 async def get_customer(customer_id: int):
     try:
+        if customer_id < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer ID must be non-negative")
         return await customer_controller.get_customer_by_id(customer_id)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -60,13 +68,18 @@ async def get_customer(customer_id: int):
 @router.put(
     "/{customer_id}",
     response_model=CustomerResponseDTO,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
 async def update_customer(customer_id: int, customer: CustomerUpdateDTO):
     try:
+        if customer_id < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer ID must be non-negative")
         return await customer_controller.update_customer(customer_id, customer)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except BadRequestError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
@@ -88,7 +101,7 @@ async def delete_customer(customer_id: int):
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
-async def create_customer_card(card: LoyaltyCardCreateDTO):
+async def create_customer_card(card: Optional[LoyaltyCardCreateDTO] = None):
     try:
         return await loyalty_card_controller.create_loyalty_card(card)
     except ConflictError as e:
@@ -98,6 +111,7 @@ async def create_customer_card(card: LoyaltyCardCreateDTO):
 @router.patch(
     "/{customer_id}/attach-card/{card_id}",
     response_model=CustomerResponseDTO,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
 async def attach_card_to_customer(customer_id: int, card_id: str):
@@ -117,6 +131,7 @@ async def attach_card_to_customer(customer_id: int, card_id: str):
 @router.patch(
     "/cards/{card_id}",
     response_model=LoyaltyCardResponseDTO,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(authenticate_user([UserType.Administrator, UserType.ShopManager, UserType.Cashier]))]
 )
 async def modify_card_points(card_id: str, points: int = Query(...)):
@@ -127,3 +142,5 @@ async def modify_card_points(card_id: str, points: int = Query(...)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Card ID must be a valid integer")
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except GeneralError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

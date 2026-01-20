@@ -241,7 +241,7 @@ async def test_delete_sale_not_found(repo):
 async def test_delete_paid_sale_raises(repo, session):
     sale = await seed_sale(session, status="PAID")
 
-    with pytest.raises(BadRequestError):
+    with pytest.raises(InvalidStateError):
         await repo.delete_sale(sale.id)
 
 @pytest.mark.asyncio

@@ -9,6 +9,7 @@ from app.models.DAO.product_dao import ProductDAO
 from app.models.DAO.position_dao import PositionDAO
 from app.models.errors.notfound_error import NotFoundError
 from app.models.errors.conflict_error import ConflictError
+from app.models.errors.bad_request import BadRequestError
 
 
 class ProductTypeRepository:
@@ -27,53 +28,49 @@ class ProductTypeRepository:
 
     async def create_product_type(self, data) -> ProductTypeDAO:
         async with await self._get_session() as session:
-            # Conflict checking
-            # 1. Check conflicts on barcode or description
-            result = await session.execute(
-                select(ProductTypeDAO).where(
-                    (ProductTypeDAO.barcode == data.barcode) |
-                    (ProductTypeDAO.description == data.description)
-                )
-            )
-            existing = result.scalars().first()
-            if existing:
-                raise ConflictError("Product type with same description or barcode already exists")
-            # 2. Parse position string
-            aisleID, rackID, levelID = self._parse_position_string(data.position)
+            # Note: Barcode uniqueness is NOT enforced at creation time
+            # Multiple products can share the same barcode
+            
+            # 2. Handle position (optional)
+            position_id = None
+            if data.position:
+                # Parse position string
+                aisleID, rackID, levelID = self._parse_position_string(data.position)
 
-            # 3. Check if position already occupied
-            pos_query = await session.execute(
-                select(PositionDAO).where(
-                    and_(
-                        PositionDAO.aisleID == aisleID,
-                        PositionDAO.rackID == rackID,
-                        PositionDAO.levelID == levelID
+                # Check if position already occupied
+                pos_query = await session.execute(
+                    select(PositionDAO).where(
+                        and_(
+                            PositionDAO.aisleID == aisleID,
+                            PositionDAO.rackID == rackID,
+                            PositionDAO.levelID == levelID
+                        )
                     )
                 )
-            )
-            if pos_query.scalars().first():
-                raise ConflictError("Position already occupied")
+                if pos_query.scalars().first():
+                    raise ConflictError("Position already occupied")
 
-            # 4. Create PositionDAO
-            position = PositionDAO(
-                aisleID=aisleID,
-                rackID=rackID,
-                levelID=levelID
-            )
-            session.add(position)
-            await session.flush()  # ensures position.id is available
+                # Create PositionDAO
+                position = PositionDAO(
+                    aisleID=aisleID,
+                    rackID=rackID,
+                    levelID=levelID
+                )
+                session.add(position)
+                await session.flush()  # ensures position.id is available
+                position_id = position.id
 
-            # 5. Create ProductTypeDAO
+            # 3. Create ProductTypeDAO
             dao = ProductTypeDAO(
                 barcode=data.barcode,
                 description=data.description,
                 price_per_unit=data.price_per_unit,
-                quantity=data.quantity,
+                quantity=data.quantity if data.quantity is not None else 0,
                 # discountRate is applied on sale transaction level
                 discountRate=data.discountRate if data.discountRate is not None else 0.0,
                 note=data.note,
                 shop_id=1, # default shop
-                position_id=position.id,
+                position_id=position_id,
             )
             session.add(dao)
             await session.flush()  # ensures dao.id is available
@@ -113,6 +110,28 @@ class ProductTypeRepository:
                 raise NotFoundError(f"Product type with id {id} not found")
 
             update_data = data.model_dump(exclude_unset=True)
+            
+            # Handle barcode updates
+            if "barcode" in update_data:
+                new_barcode = update_data["barcode"]
+                
+                # Check barcode conflicts FIRST (409 takes precedence over 400)
+                # Check for conflicts even if barcode isn't changing, to detect other products with same barcode
+                barcode_check = await session.execute(
+                    select(ProductTypeDAO).where(
+                        and_(
+                            ProductTypeDAO.barcode == new_barcode,
+                            ProductTypeDAO.id != id
+                        )
+                    )
+                )
+                if barcode_check.scalar_one_or_none():
+                    raise ConflictError("Product type with same barcode already exists")
+                
+                # GS1 barcode validation (NFR4 requirement) - only if barcode is actually changing
+                if new_barcode is not None and new_barcode != dao.barcode:
+                    if not self._validate_gs1_check_digit(new_barcode):
+                        raise BadRequestError("Invalid barcode check digit")
             # handle position update separately
             if "position" in update_data:
                 new_pos_str = update_data["position"]
@@ -224,39 +243,43 @@ class ProductTypeRepository:
             if not dao:
                 raise NotFoundError(f"Product type with id {id} not found")
 
-            if position_str is None:
+            # Handle empty string or None to unset position
+            if not position_str:
                 if dao.position:
                     await session.delete(dao.position)
                     dao.position_id = None
-            else:
-                aisleID, rackID, levelID = self._parse_position_string(position_str)
+                await session.commit()
+                return
+            
+            # Parse and validate new position
+            aisleID, rackID, levelID = self._parse_position_string(position_str)
 
-                pos_query = await session.execute(
-                    select(PositionDAO).where(
-                        and_(
-                            PositionDAO.aisleID == aisleID,
-                            PositionDAO.rackID == rackID,
-                            PositionDAO.levelID == levelID,
-                            PositionDAO.id != dao.position_id
-                        )
+            pos_query = await session.execute(
+                select(PositionDAO).where(
+                    and_(
+                        PositionDAO.aisleID == aisleID,
+                        PositionDAO.rackID == rackID,
+                        PositionDAO.levelID == levelID,
+                        PositionDAO.id != dao.position_id
                     )
                 )
-                if pos_query.scalars().first():
-                    raise ConflictError("Position already occupied")
+            )
+            if pos_query.scalars().first():
+                raise ConflictError("Position already occupied")
 
-                if dao.position:
-                    dao.position.aisleID = aisleID
-                    dao.position.rackID = rackID
-                    dao.position.levelID = levelID
-                else:
-                    new_position = PositionDAO(
-                        aisleID=aisleID,
-                        rackID=rackID,
-                        levelID=levelID
-                    )
-                    session.add(new_position)
-                    await session.flush()
-                    dao.position_id = new_position.id
+            if dao.position:
+                dao.position.aisleID = aisleID
+                dao.position.rackID = rackID
+                dao.position.levelID = levelID
+            else:
+                new_position = PositionDAO(
+                    aisleID=aisleID,
+                    rackID=rackID,
+                    levelID=levelID
+                )
+                session.add(new_position)
+                await session.flush()
+                dao.position_id = new_position.id
 
             await session.commit()
 
@@ -271,3 +294,22 @@ class ProductTypeRepository:
 
             dao.quantity = new_quantity
             await session.commit()
+
+    @staticmethod
+    def _validate_gs1_check_digit(barcode: str) -> bool:
+        """Validate GS1 check digit according to NFR4 requirement"""
+        if len(barcode) < 12:
+            return False
+            
+        # Extract the data digits (all except the last one which is the check digit)
+        data_digits = barcode[:-1]
+        check_digit = int(barcode[-1])
+        
+        # Calculate check digit using GS1 algorithm
+        odd_sum = sum(int(data_digits[i]) for i in range(0, len(data_digits), 2))
+        even_sum = sum(int(data_digits[i]) for i in range(1, len(data_digits), 2))
+        
+        total = odd_sum + (even_sum * 3)
+        calculated_check_digit = (10 - (total % 10)) % 10
+        
+        return check_digit == calculated_check_digit
